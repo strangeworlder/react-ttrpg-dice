@@ -1,6 +1,6 @@
 {
   "name": "react-ttrpg-dice",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "description": "Plug-and-play React component for rolling polyhedral TTRPG dice with WebGPU physics",
   "type": "module",
   "main": "./dist/index.js",
