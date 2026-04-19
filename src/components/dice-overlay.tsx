@@ -6,8 +6,8 @@ import { Canvas } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { ReactTTRPGDiceProps, RollResult } from '../types.js';
 import { DieRegistry } from '../registry.js';
-import { parseDiceNotation, expandNotation } from '../parser.js';
-import { instantRoll } from '../math/instant-roll.js';
+import { parseDiceNotation, expandNotation, expandGroups } from '../parser.js';
+import { instantRoll, instantGroupedRoll } from '../math/instant-roll.js';
 import { applyTheme } from '../themes/apply-theme.js';
 import { PhysicsScene } from './physics-scene.js';
 
@@ -47,7 +47,7 @@ class CanvasErrorBoundary extends Component<EBProps, EBState> {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export function DiceOverlay({
-  roll, config, customRegistry, onRollComplete, onRollStart,
+  roll, config, groups: groupsProp, customRegistry, onRollComplete, onRollStart,
   timeout = 6000,
 }: ReactTTRPGDiceProps) {
   const [announcement, setAnnouncement] = useState('');
@@ -58,9 +58,30 @@ export function DiceOverlay({
   const fadeTimer   = useRef<ReturnType<typeof setTimeout>>();
 
   const registry = useMemo(() => new DieRegistry(customRegistry), [customRegistry]);
-  const parsed   = useMemo(() => parseDiceNotation(roll), [roll]);
-  const expanded = useMemo(() => expandNotation(parsed), [parsed]);
-  const theme    = useMemo(() => applyTheme(config), [config]);
+  const fallbackTheme = useMemo(() => applyTheme(config), [config]);
+  // Ref so grouped memo can read the current fallback without it being a dependency
+  const fallbackThemeRef = useRef(fallbackTheme);
+  fallbackThemeRef.current = fallbackTheme;
+
+  // ── Simple path: only recomputes when the notation string itself changes ────
+  const simpleData = useMemo(() => {
+    const p = parseDiceNotation(roll);
+    return { dice: expandNotation(p), notation: roll, parsed: p };
+  }, [roll]);
+
+  // ── Advanced path: only recomputes when the groups array itself changes ─────
+  // fallbackTheme is read from a ref so a theme-reference change alone doesn't
+  // regenerate die IDs (which would remount the physics scene mid-linger).
+  const groupedData = useMemo(() => {
+    if (!groupsProp?.length) return null;
+    const { dice, combinedNotation } = expandGroups(groupsProp, fallbackThemeRef.current);
+    return { dice, notation: combinedNotation };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupsProp]);
+
+  const expanded         = groupedData?.dice     ?? simpleData.dice;
+  const combinedNotation = groupedData?.notation  ?? simpleData.notation;
+  const parsed           = groupedData ? null     : simpleData.parsed;
 
   // Fade-in when overlay mounts
   useEffect(() => {
@@ -86,7 +107,13 @@ export function DiceOverlay({
   const fireInstant = () => {
     if (firedRef.current) return;
     firedRef.current = true;
-    const result = instantRoll(parsed, registry);
+    let result: RollResult;
+    if (groupsProp?.length) {
+      // Advanced: instantGroupedRoll handles per-group labels
+      result = instantGroupedRoll(groupsProp, registry);
+    } else {
+      result = instantRoll(parsed!, registry);
+    }
     const vals = result.rolls.map(r => r.value).join(', ');
     setAnnouncement(`Rolled ${vals}. Total: ${result.total}.`);
     startDismiss(result);
@@ -94,7 +121,17 @@ export function DiceOverlay({
 
   useEffect(() => {
     firedRef.current = false;
-    const label = parsed.groups.map(g => `${g.count} ${g.type}`).join(' and ');
+    // Build aria label from either groups or parsed notation
+    let label: string;
+    if (groupsProp?.length) {
+      label = groupsProp.map(g => {
+        const p = parseDiceNotation(g.notation);
+        const desc = p.groups.map(pg => `${pg.count} ${pg.type}`).join(' and ');
+        return g.label ? `${g.label}: ${desc}` : desc;
+      }).join(', ');
+    } else {
+      label = parsed!.groups.map(g => `${g.count} ${g.type}`).join(' and ');
+    }
     setAnnouncement(`Rolling ${label}…`);
     onRollStart?.();
 
@@ -155,9 +192,9 @@ export function DiceOverlay({
           <Suspense fallback={null}>
             <PhysicsScene
               expandedDice={expanded}
-              notation={roll}
+              notation={combinedNotation}
               registry={registry}
-              theme={theme}
+              theme={fallbackTheme}
               timeout={timeout}
               onRollComplete={handleComplete}
             />

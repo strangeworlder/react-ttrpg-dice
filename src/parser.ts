@@ -1,4 +1,6 @@
-import type { DieType, ExpandedDie, ParsedDieGroup, ParsedNotation, RegistryId } from './types.js';
+import type { DieType, DiceGroup, ExpandedDie, ParsedDieGroup, ParsedNotation, RegistryId } from './types.js';
+import type { ThemeDefinition } from './themes/theme-definitions.js';
+import { applyTheme } from './themes/apply-theme.js';
 
 const VALID_SIDES: ReadonlySet<number> = new Set([4, 6, 8, 10, 12, 20, 100]);
 const DIE_PATTERN = /(\d*)d(\d+)/gi;
@@ -70,4 +72,37 @@ export function expandNotation(parsed: ParsedNotation): ExpandedDie[] {
     }
   }
   return dice;
+}
+
+/**
+ * Advanced: expands an array of DiceGroups into individual ExpandedDie entries,
+ * each carrying its group's resolved theme and label.
+ *
+ * @param groups    - Consumer-supplied dice groups with per-group notation, config, and label
+ * @param fallback  - Default theme used when a group has no config override
+ * @returns dice    - Flat array of ExpandedDie with per-die theme/label
+ * @returns combinedNotation - All group notations joined with ` + `
+ */
+export function expandGroups(
+  groups: DiceGroup[],
+  fallback: ThemeDefinition,
+): { dice: ExpandedDie[]; combinedNotation: string } {
+  const allDice: ExpandedDie[] = [];
+  const notationParts: string[] = [];
+
+  for (const group of groups) {
+    const parsed = parseDiceNotation(group.notation);
+    const expanded = expandNotation(parsed);
+    const resolvedTheme = group.config ? applyTheme(group.config) : fallback;
+
+    for (const die of expanded) {
+      die.group = group.label;
+      die.theme = resolvedTheme;
+    }
+
+    allDice.push(...expanded);
+    notationParts.push(parsed.raw);
+  }
+
+  return { dice: allDice, combinedNotation: notationParts.join(' + ') };
 }

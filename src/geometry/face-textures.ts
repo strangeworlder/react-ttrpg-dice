@@ -2,10 +2,15 @@ import * as THREE from 'three';
 import type { DieDefinition } from '../types.js';
 import type { ThemeDefinition } from '../themes/theme-definitions.js';
 
-// ─── Canvas texture cache (by value + theme name) ─────────────────────────────
+// ─── Canvas texture cache (by visual identity) ───────────────────────────────
 const _texCache = new Map<string, THREE.CanvasTexture>();
 const _emiCache = new Map<string, THREE.CanvasTexture>();
 const _matCache = new Map<string, THREE.MeshPhysicalMaterial[] | THREE.MeshStandardMaterial[]>();
+
+/** Content-based fingerprint so custom color overrides produce distinct cache keys */
+function themeFingerprint(theme: ThemeDefinition): string {
+  return `${theme.dieColor}_${theme.numberColor}_${theme.accentColor}_${theme.roughness}_${theme.metalness}_${theme.isGlass ? 1 : 0}`;
+}
 
 // High-res canvas for crisp rendering at any die display size
 const SIZE = 512;
@@ -116,7 +121,7 @@ function createEmissiveCanvas(value: number, theme: ThemeDefinition): HTMLCanvas
 }
 
 function getAlbedoTexture(value: number, theme: ThemeDefinition): THREE.CanvasTexture {
-  const key = `${value}__${theme.name}`;
+  const key = `${value}__${themeFingerprint(theme)}`;
   if (_texCache.has(key)) return _texCache.get(key)!;
   const tex = new THREE.CanvasTexture(createAlbedoCanvas(value, theme));
   tex.needsUpdate = true;
@@ -125,7 +130,7 @@ function getAlbedoTexture(value: number, theme: ThemeDefinition): THREE.CanvasTe
 }
 
 function getEmissiveTexture(value: number, theme: ThemeDefinition): THREE.CanvasTexture {
-  const key = `${value}__${theme.name}`;
+  const key = `${value}__${themeFingerprint(theme)}`;
   if (_emiCache.has(key)) return _emiCache.get(key)!;
   const tex = new THREE.CanvasTexture(createEmissiveCanvas(value, theme));
   tex.needsUpdate = true;
@@ -225,7 +230,7 @@ export function getDieFaceMaterials(
   definition: DieDefinition,
   theme: ThemeDefinition,
 ): THREE.MeshPhysicalMaterial[] | THREE.MeshStandardMaterial[] {
-  const key = `${definition.id}__${theme.name}`;
+  const key = `${definition.id}__${themeFingerprint(theme)}`;
   if (_matCache.has(key)) return _matCache.get(key)!;
 
   let mats: THREE.MeshPhysicalMaterial[] | THREE.MeshStandardMaterial[];

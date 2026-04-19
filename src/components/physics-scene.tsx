@@ -265,7 +265,7 @@ export function PhysicsScene({ expandedDice, notation, registry, theme, timeout,
             definition={registry.get(die.registryId)}
             spawnPosition={spawnPositions[i]?.position ?? [0, 9, 0]}
             spawnRotation={spawnPositions[i]?.rotation  ?? [0, 0, 0]}
-            theme={theme}
+            theme={die.theme ?? theme}
             onSleep={handleSleep}
             onRegister={registerRb}
             onUnregister={unregisterRb}

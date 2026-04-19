@@ -28,11 +28,11 @@ export function buildRollResult(
       const tens  = tensD ? (resolvedValues.get(tensD.id) ?? 0) : 0;
       const ones  = onesD ? (resolvedValues.get(onesD.id) ?? 0) : 0;
       const d100  = readD100(tens, ones);
-      rolls.push({ type: 'd100', value: d100, isMax: d100 === 100, isMin: d100 === 1 });
+      rolls.push({ type: 'd100', value: d100, isMax: d100 === 100, isMin: d100 === 1, group: die.group });
     } else {
       const def    = registry.get(die.registryId);
       const actual = die.registryId === 'd10' && value === 0 ? 10 : value;
-      rolls.push({ type: die.publicType, value: actual, isMax: actual === def.sides, isMin: actual === 1 });
+      rolls.push({ type: die.publicType, value: actual, isMax: actual === def.sides, isMin: actual === 1, group: die.group });
     }
   }
 

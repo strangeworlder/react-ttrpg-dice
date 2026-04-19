@@ -9,6 +9,7 @@ Dice are rendered with [Three.js](https://threejs.org/) via [React Three Fiber](
 - **Full polyhedral set** — d4, d6, d8, d10, d12, d20, and d100 (percentile)
 - **Real physics** — Rapier rigid-body simulation with hull colliders, CCD, and progressive damping
 - **5 built-in themes** — Obsidian, Ivory, Crimson, Glass (transmission), Metal
+- **Multi-color dice groups** — roll dice of different themes in a single roll for attack vs. damage, advantage, etc.
 - **Standard notation** — `"2d6"`, `"1d20 + 1d4"`, `"1d100"`, etc.
 - **Full-page overlay** — renders on a fixed `z-index: 9999` layer; dice tumble over your UI then fade out
 - **Accessible** — live-region announcements, `prefers-reduced-motion` support (instant roll, no animation)
@@ -30,13 +31,13 @@ These must already be in your project:
 npm install react react-dom three @react-three/fiber @react-three/rapier
 ```
 
-| Peer                    | Version          |
-|-------------------------|------------------|
-| `react`                 | `^18.0 \|\| ^19.0` |
-| `react-dom`             | `^18.0 \|\| ^19.0` |
-| `three`                 | `≥0.171.0`       |
-| `@react-three/fiber`    | `≥9.0.0`         |
-| `@react-three/rapier`   | `≥1.5.0`         |
+| Peer | Version |
+| --- | --- |
+| `react` | `^18.0` or `^19.0` |
+| `react-dom` | `^18.0` or `^19.0` |
+| `three` | `>=0.171.0` |
+| `@react-three/fiber` | `>=9.0.0` |
+| `@react-three/rapier` | `>=1.5.0` |
 
 ## 🚀 Quick Start
 
@@ -102,14 +103,14 @@ function App() {
 
 Standard TTRPG notation is supported. Multiple groups are joined with `+`:
 
-| Notation         | Spawns                           |
-|------------------|----------------------------------|
-| `1d20`           | One twenty-sided die             |
-| `2d6`            | Two six-sided dice               |
-| `2d20 + 1d6`     | Two d20s and one d6              |
-| `4d6`            | Four six-sided dice              |
-| `1d100`          | A d10 (ones) + d10-tens (tens)   |
-| `d8`             | Count defaults to 1              |
+| Notation | Spawns |
+| --- | --- |
+| `1d20` | One twenty-sided die |
+| `2d6` | Two six-sided dice |
+| `2d20 + 1d6` | Two d20s and one d6 |
+| `4d6` | Four six-sided dice |
+| `1d100` | A d10 (ones) + d10-tens (tens) |
+| `d8` | Count defaults to 1 |
 
 Supported die types: **d4**, **d6**, **d8**, **d10**, **d12**, **d20**, **d100**.
 Maximum 20 dice per group. Case-insensitive (`2D6` = `2d6`).
@@ -118,13 +119,13 @@ Maximum 20 dice per group. Case-insensitive (`2D6` = `2d6`).
 
 Five built-in themes control the material, color, and rendering style of the dice:
 
-| Theme      | Description                                      |
-|------------|--------------------------------------------------|
-| `obsidian` | Deep purple body with gold numbers (default)     |
-| `ivory`    | Warm cream body with dark brown numbers           |
-| `crimson`  | Dark red body with gold numbers                  |
-| `glass`    | Transparent glass with transmission + refraction |
-| `metal`    | Silver-grey body with dark numbers               |
+| Theme | Description |
+| --- | --- |
+| `obsidian` | Deep purple body with gold numbers (default) |
+| `ivory` | Warm cream body with dark brown numbers |
+| `crimson` | Dark red body with gold numbers |
+| `glass` | Transparent glass with transmission + refraction |
+| `metal` | Silver-grey body with dark numbers |
 
 ### Custom colors
 
@@ -143,6 +144,56 @@ useDiceRoll({
 });
 ```
 
+## 🎲 Dice Groups (Advanced)
+
+Roll multiple groups of dice with different themes in a single roll — useful for distinguishing attack vs. damage, positive vs. negative effects, advantage rolls, etc.
+
+### Using `rollGroups()`
+
+```tsx
+import { useDiceRoll } from 'react-ttrpg-dice';
+
+function CombatRoller() {
+  const { rollGroups, result, isRolling, DiceOverlayPortal } = useDiceRoll();
+
+  const handleAttack = () => {
+    rollGroups([
+      { notation: '1d20', config: { theme: 'crimson' }, label: 'attack' },
+      { notation: '2d6',  config: { theme: 'ivory' },   label: 'damage' },
+    ]);
+  };
+
+  return (
+    <>
+      <button onClick={handleAttack} disabled={isRolling}>⚔️ Attack!</button>
+
+      {result && (
+        <div>
+          <p>Attack: {result.rolls.filter(r => r.group === 'attack').map(r => r.value).join(', ')}</p>
+          <p>Damage: {result.rolls.filter(r => r.group === 'damage').reduce((s, r) => s + r.value, 0)}</p>
+        </div>
+      )}
+
+      {DiceOverlayPortal}
+    </>
+  );
+}
+```
+
+### Per-group subtotals
+
+Each `SingleDieResult` in the response includes a `group` field matching the label you provided. Filter and reduce to compute per-group totals:
+
+```ts
+const attackRoll = result.rolls.find(r => r.group === 'attack')?.value;
+const damageTotal = result.rolls
+  .filter(r => r.group === 'damage')
+  .reduce((sum, r) => sum + r.value, 0);
+```
+
+Groups without a `config` inherit the top-level theme (or `obsidian` by default).
+Groups without a `label` will have `group: undefined` in results.
+
 ## 📖 API Reference
 
 ### `useDiceRoll(options?)`
@@ -151,35 +202,37 @@ React hook that manages roll state and renders the 3D overlay.
 
 #### Options
 
-| Prop             | Type               | Default  | Description                         |
-|------------------|--------------------|----------|-------------------------------------|
-| `config`         | `DiceThemeConfig`  | `{}`     | Theme and color overrides           |
-| `customRegistry` | `DieDefinition[]`  | `[]`     | Override or extend die definitions  |
-| `onRollComplete` | `(r: RollResult) => void` | — | Callback fired when dice settle     |
-| `timeout`        | `number`           | `6000`   | Hard timeout (ms) before forcing    |
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `config` | `DiceThemeConfig` | `{}` | Theme and color overrides |
+| `customRegistry` | `DieDefinition[]` | `[]` | Override or extend die definitions |
+| `onRollComplete` | `(r: RollResult) => void` | — | Callback fired when dice settle |
+| `timeout` | `number` | `6000` | Hard timeout (ms) before forcing |
 
 #### Returns
 
-| Property            | Type               | Description                                                |
-|---------------------|--------------------|------------------------------------------------------------|
-| `roll(notation)`    | `(string) => void` | Start a roll with the given notation                       |
-| `isRolling`         | `boolean`          | `true` while physics is running                            |
-| `result`            | `RollResult \| null` | Latest roll result, or `null`                            |
-| `activeNotation`    | `string \| null`   | The notation string of the current/last roll               |
-| `DiceOverlayPortal` | `ReactNode`        | Render this in your JSX to display the 3D dice overlay     |
+| Property | Type | Description |
+| --- | --- | --- |
+| `roll(notation)` | `(string) => void` | Start a roll with the given notation |
+| `rollGroups(groups)` | `(DiceGroup[]) => void` | Advanced: roll multiple groups with per-group themes |
+| `isRolling` | `boolean` | `true` while physics is running |
+| `result` | `RollResult` or `null` | Latest roll result, or `null` |
+| `activeNotation` | `string` or `null` | The notation string of the current/last roll |
+| `DiceOverlayPortal` | `ReactNode` | Render this in your JSX to display the 3D dice overlay |
 
 ### `<DiceOverlay>`
 
 The underlying overlay component (used internally by `useDiceRoll`).
 
-| Prop             | Type               | Required | Default  | Description                       |
-|------------------|--------------------|----------|----------|-----------------------------------|
-| `roll`           | `string`           | ✅       | —        | Dice notation string              |
-| `config`         | `DiceThemeConfig`  | —        | `{}`     | Theme and color overrides         |
-| `customRegistry` | `DieDefinition[]`  | —        | `[]`     | Override or extend die definitions|
-| `onRollComplete` | `(r: RollResult) => void` | ✅ | —       | Fires when all dice settle        |
-| `onRollStart`    | `() => void`       | —        | —        | Fires when roll animation begins  |
-| `timeout`        | `number`           | —        | `6000`   | Hard timeout (ms)                 |
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `roll` | `string` | ✅ | — | Dice notation string |
+| `config` | `DiceThemeConfig` | — | `{}` | Theme and color overrides |
+| `groups` | `DiceGroup[]` | — | — | Advanced: per-group themed dice |
+| `customRegistry` | `DieDefinition[]` | — | `[]` | Override or extend die definitions |
+| `onRollComplete` | `(r: RollResult) => void` | ✅ | — | Fires when all dice settle |
+| `onRollStart` | `() => void` | — | — | Fires when roll animation begins |
+| `timeout` | `number` | — | `6000` | Hard timeout (ms) |
 
 ### `RollResult`
 
@@ -195,6 +248,32 @@ interface SingleDieResult {
   value: number;   // Face value
   isMax: boolean;  // Rolled the highest possible value
   isMin: boolean;  // Rolled the lowest possible value
+  group?: string;  // Group label (only present in grouped rolls)
+}
+```
+
+### `DiceGroup`
+
+Used with `rollGroups()` for advanced multi-themed rolls:
+
+```ts
+interface DiceGroup {
+  notation: string;          // Dice notation for this group, e.g. "2d6"
+  config?: DiceThemeConfig;  // Theme/color override for these dice
+  label?: string;            // Label to tag results, e.g. "healing"
+}
+```
+
+### `DiceThemeConfig`
+
+```ts
+interface DiceThemeConfig {
+  theme?: 'obsidian' | 'ivory' | 'crimson' | 'glass' | 'metal';
+  dieColor?: string;
+  numberColor?: string;
+  accentColor?: string;
+  roughness?: number;
+  metalness?: number;
 }
 ```
 

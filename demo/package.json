@@ -11,7 +11,7 @@
     "@react-three/rapier": "^2.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-ttrpg-dice": "file:../react-ttrpg-dice-0.0.1.tgz",
+    "react-ttrpg-dice": "file:..",
     "three": "^0.175.0"
   },
   "devDependencies": {

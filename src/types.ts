@@ -1,3 +1,5 @@
+import type { ThemeDefinition } from './themes/theme-definitions.js';
+
 // ─── Public die type strings (user-facing) ───────────────────────────────────
 export type DieType = 'd4' | 'd6' | 'd8' | 'd10' | 'd12' | 'd20' | 'd100';
 
@@ -26,6 +28,10 @@ export interface ExpandedDie {
   pairId?: string;
   /** True = this is the tens die of a d100 pair */
   isTens?: boolean;
+  /** Group label from DiceGroup.label (advanced grouped rolls) */
+  group?: string;
+  /** Per-die theme override resolved from DiceGroup.config */
+  theme?: ThemeDefinition;
 }
 
 // ─── Roll Result ─────────────────────────────────────────────────────────────
@@ -34,6 +40,8 @@ export interface SingleDieResult {
   value: number;
   isMax: boolean;
   isMin: boolean;
+  /** Group label, if this die was part of a labeled DiceGroup */
+  group?: string;
 }
 
 export interface RollResult {
@@ -88,6 +96,16 @@ export interface DiceThemeConfig {
   metalness?: number;
 }
 
+/** Advanced: a group of dice with its own theme and label */
+export interface DiceGroup {
+  /** Standard dice notation for this group, e.g. "2d6" */
+  notation: string;
+  /** Optional theme/color override for this group's dice */
+  config?: DiceThemeConfig;
+  /** Label to tag results with, e.g. "healing", "attack" */
+  label?: string;
+}
+
 export interface CustomTextureMap {
   [dieType: string]: { [faceValue: number]: string };
 }
@@ -96,6 +114,8 @@ export interface ReactTTRPGDiceProps {
   /** Standard dice notation: "2d20 + 1d6", "1d100", etc. */
   roll: string;
   config?: DiceThemeConfig;
+  /** Advanced: per-group dice with independent themes. Overrides `roll` + `config`. */
+  groups?: DiceGroup[];
   customTextures?: CustomTextureMap;
   /** Override or extend built-in die definitions */
   customRegistry?: DieDefinition[];

@@ -6,7 +6,7 @@ export { useDiceRoll }    from './use-dice-roll.js'; // source: use-dice-roll.ts
 
 // ─── Registry & parser (advanced use) ────────────────────────────────────────
 export { DieRegistry }          from './registry.js';
-export { parseDiceNotation, expandNotation, DiceNotationError } from './parser.js';
+export { parseDiceNotation, expandNotation, expandGroups, DiceNotationError } from './parser.js';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 export type {
@@ -14,6 +14,7 @@ export type {
   RollResult,
   SingleDieResult,
   DiceThemeConfig,
+  DiceGroup,
   CustomTextureMap,
   DieDefinition,
   DiePhysicsConfig,
