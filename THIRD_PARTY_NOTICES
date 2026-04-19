@@ -1,0 +1,60 @@
+Third-Party Software Notices
+============================
+
+react-ttrpg-dice includes or depends on the following third-party software.
+Users of this library are responsible for complying with the license terms
+of each peer dependency they install.
+
+--------------------------------------------------------------------------------
+
+Rapier — 3D Physics Engine
+https://rapier.rs/
+
+  Bundled via: @dimforge/rapier3d-compat (transitive dependency of
+               @react-three/rapier)
+  Copyright:   Dimforge SAS
+  License:     Apache License 2.0
+  Full text:   https://www.apache.org/licenses/LICENSE-2.0
+
+  Rapier is used as the physics simulation engine for dice rolling. Its
+  WebAssembly bindings are loaded at runtime through @react-three/rapier.
+
+--------------------------------------------------------------------------------
+
+Three.js
+https://threejs.org/
+
+  Peer dependency: three
+  Copyright:       Three.js contributors
+  License:         MIT
+  Full text:       https://github.com/mrdoob/three.js/blob/dev/LICENSE
+
+--------------------------------------------------------------------------------
+
+React Three Fiber
+https://docs.pmnd.rs/react-three-fiber
+
+  Peer dependency: @react-three/fiber
+  Copyright:       Poimandres contributors
+  License:         MIT
+  Full text:       https://github.com/pmndrs/react-three-fiber/blob/master/LICENSE
+
+--------------------------------------------------------------------------------
+
+React Three Rapier
+https://github.com/pmndrs/react-three-rapier
+
+  Peer dependency: @react-three/rapier
+  Copyright:       Poimandres contributors
+  License:         MIT
+  Full text:       https://github.com/pmndrs/react-three-rapier/blob/main/LICENSE
+
+--------------------------------------------------------------------------------
+
+React
+https://react.dev/
+
+  Peer dependency: react, react-dom
+  Copyright:       Meta Platforms, Inc. and affiliates
+  License:         MIT
+  Full text:       https://github.com/facebook/react/blob/main/LICENSE

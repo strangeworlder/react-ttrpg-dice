@@ -11,7 +11,7 @@
       "default": "./dist/index.js"
     }
   },
-  "files": ["dist", "README.md", "LICENSE"],
+  "files": ["dist", "README.md", "LICENSE", "THIRD_PARTY_NOTICES"],
   "sideEffects": false,
   "scripts": {
     "build": "bunchee",
@@ -24,13 +24,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/alvan/react-ttrpg-dice.git"
+    "url": "git+https://github.com/strangeworlder/react-ttrpg-dice.git"
   },
-  "homepage": "https://github.com/alvan/react-ttrpg-dice#readme",
+  "homepage": "https://github.com/strangeworlder/react-ttrpg-dice#readme",
   "bugs": {
-    "url": "https://github.com/alvan/react-ttrpg-dice/issues"
+    "url": "https://github.com/strangeworlder/react-ttrpg-dice/issues"
   },
-  "author": "alvan",
+  "author": "strangeworlder",
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0",
     "react-dom": "^18.0.0 || ^19.0.0",

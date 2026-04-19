@@ -321,3 +321,5 @@ The demo links to the library via the workspace root — changes to `src/` are r
 ## 📄 License
 
 [MIT](./LICENSE)
+
+This library depends on [Rapier](https://rapier.rs/) (via `@react-three/rapier`), which is licensed under [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0). All other dependencies are MIT-licensed. See [THIRD_PARTY_NOTICES](./THIRD_PARTY_NOTICES) for full attribution details.
