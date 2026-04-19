@@ -1,7 +1,36 @@
+# Dependencies
 node_modules/
-dist/
-*.tsbuildinfo
 demo/node_modules/
+
+# Build output
+dist/
 demo/dist/
-.DS_Store
+*.tsbuildinfo
+
+# Test coverage
 coverage/
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Editor directories and files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# npm pack output
+*.tgz
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

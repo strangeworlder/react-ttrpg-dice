@@ -1,0 +1,32 @@
+# Source (consumers use dist/)
+src/
+
+# Demo app
+demo/
+
+# Agent / skill configs
+.agents/
+.claude/
+skills-lock.json
+
+# Config files
+tsconfig.json
+vitest.config.ts
+.gitignore
+.eslintrc*
+.prettierrc*
+
+# Test artifacts
+coverage/
+*.test.ts
+*.test.tsx
+
+# Build cache
+*.tsbuildinfo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# npm pack output
+*.tgz
