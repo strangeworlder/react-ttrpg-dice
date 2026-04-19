@@ -36,37 +36,59 @@ export function DieMesh({
 }: DieMeshProps) {
   const rbRef = useRef<RapierRigidBody>(null);
   const meshRef = useRef<Mesh>(null);
+  /**
+   * Frame counter: tracks how many frames the rigid body has been available.
+   * We need to wait for the Physics component's useFrame to run its first
+   * step (which initialises body state from declarative props) before we
+   * apply the throw impulse — otherwise the impulse is overwritten by that
+   * initialisation and the dice fall straight down without spinning.
+   *
+   * Timeline:
+   *   Frame 0 – rbRef becomes available; Physics hasn't stepped yet.
+   *   Frame 1 – Physics runs its first step, body is fully registered.
+   *   Frame 2 – We apply the throw impulse.  Safe from overwrites.
+   */
+  const readyFrames = useRef(0);
 
   // Grouped geometry: per-face UV + material groups (cached by die type)
   const geometry = useMemo(() => getGroupedGeometry(definition.id), [definition.id]);
   // Face material array: one MeshStandardMaterial with canvas texture per face
   const materials = useMemo(() => getDieFaceMaterials(definition, theme), [definition, theme]);
 
+  // Pre-compute the impulse once so it's deterministic per mount
+  const impulse = useMemo(() => calculateThrowImpulse(definition.physics.mass), [definition.physics.mass]);
+
   useEffect(() => {
-    const t = setTimeout(() => {
-      const rb = rbRef.current;
-      if (!rb) return;
-
-      onRegister(id, rb);
-
-      const { linear, angular } = calculateThrowImpulse(definition.physics.mass);
-      rb.applyImpulse({ x: linear[0], y: linear[1], z: linear[2] }, true);
-      rb.applyTorqueImpulse({ x: angular[0], y: angular[1], z: angular[2] }, true);
-    }, 100);
-
-    return () => {
-      clearTimeout(t);
-      onUnregister(id);
-    };
+    return () => { onUnregister(id); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Fake-perspective: scale the visual mesh based on height (closer to cam → bigger).
-  // Only the visual mesh scales — the physics collider stays at its original size.
+  // Fake-perspective + throw-impulse application.
   useFrame(() => {
     const rb = rbRef.current;
     const mesh = meshRef.current;
     if (!rb || !mesh) return;
+
+    // ── Apply throw impulse after the physics world has initialised ────────
+    if (readyFrames.current < 3) {
+      readyFrames.current++;
+
+      if (readyFrames.current === 2) {
+        // Register on frame 1 so velocity polling in PhysicsScene can find us
+        onRegister(id, rb);
+      }
+
+      if (readyFrames.current === 3) {
+        rb.applyImpulse(
+          { x: impulse.linear[0], y: impulse.linear[1], z: impulse.linear[2] },
+          true,
+        );
+        rb.applyTorqueImpulse(
+          { x: impulse.angular[0], y: impulse.angular[1], z: impulse.angular[2] },
+          true,
+        );
+      }
+    }
 
     const height = Math.max(0, rb.translation().y);
     const s = 1 + height * SCALE_FACTOR;
@@ -84,7 +106,7 @@ export function DieMesh({
         position={spawnPosition}
         rotation={spawnRotation}
         colliders="hull"
-        ccdEnabled
+        ccd
         mass={definition.physics.mass}
         friction={definition.physics.friction}
         restitution={definition.physics.restitution}

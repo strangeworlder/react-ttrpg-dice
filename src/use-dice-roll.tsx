@@ -51,7 +51,7 @@ export function useDiceRoll(opts?: UseDiceRollOptions): UseDiceRollReturn {
   const [isRolling, setIsRolling] = useState(false);
   const [result, setResult]       = useState<RollResult | null>(null);
   const optsRef   = useRef(opts);
-  const unmountId = useRef<ReturnType<typeof setTimeout>>();
+  const unmountId = useRef<ReturnType<typeof setTimeout>>(undefined);
   optsRef.current = opts;
 
   /** Simple roll: single notation string, all dice share the same theme */

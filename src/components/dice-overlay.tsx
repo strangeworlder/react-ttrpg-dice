@@ -54,8 +54,8 @@ export function DiceOverlay({
   const [opacity, setOpacity]           = useState(0);   // starts invisible, fades in
   const [transition, setTransition]     = useState('opacity 0.3s ease-in');
   const firedRef    = useRef(false);
-  const lingerTimer = useRef<ReturnType<typeof setTimeout>>();
-  const fadeTimer   = useRef<ReturnType<typeof setTimeout>>();
+  const lingerTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const fadeTimer   = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const registry = useMemo(() => new DieRegistry(customRegistry), [customRegistry]);
   const fallbackTheme = useMemo(() => applyTheme(config), [config]);
