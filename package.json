@@ -1,6 +1,6 @@
 {
   "name": "react-ttrpg-dice",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Plug-and-play React component for rolling polyhedral TTRPG dice with WebGPU physics",
   "type": "module",
   "main": "./dist/index.js",
@@ -11,7 +11,12 @@
       "default": "./dist/index.js"
     }
   },
-  "files": ["dist", "README.md", "LICENSE", "THIRD_PARTY_NOTICES"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES"
+  ],
   "sideEffects": false,
   "scripts": {
     "build": "bunchee",
@@ -51,7 +56,17 @@
     "@react-three/fiber": "^9.0.0",
     "@react-three/rapier": "^2.1.0"
   },
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "license": "MIT",
-  "keywords": ["react", "dice", "ttrpg", "3d", "physics", "webgpu", "rapier"]
+  "keywords": [
+    "react",
+    "dice",
+    "ttrpg",
+    "3d",
+    "physics",
+    "webgpu",
+    "rapier"
+  ]
 }
