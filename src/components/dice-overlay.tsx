@@ -8,6 +8,7 @@ import type { ReactTTRPGDiceProps, RollResult, SoundConfig } from '../types.js';
 import { DieRegistry } from '../registry.js';
 import { parseDiceNotation, expandNotation, expandGroups } from '../parser.js';
 import { instantRoll, instantGroupedRoll } from '../math/instant-roll.js';
+import { buildPredeterminedRollResult } from '../math/build-roll-result.js';
 import { applyTheme } from '../themes/apply-theme.js';
 import { PhysicsScene } from './physics-scene.js';
 import { DiceSoundEngine } from '../sound/dice-sound.js';
@@ -49,7 +50,7 @@ class CanvasErrorBoundary extends Component<EBProps, EBState> {
 // ─── Main Component ───────────────────────────────────────────────────────────
 export function DiceOverlay({
   roll, config, groups: groupsProp, customRegistry, onRollComplete, onRollStart,
-  timeout = 6000, cameraAngle, sound,
+  timeout = 6000, cameraAngle, sound, predeterminedValues,
 }: ReactTTRPGDiceProps) {
   // Camera position: default top-down with optional x/z tilt
   const cameraPosition = useMemo<[number, number, number]>(
@@ -81,6 +82,25 @@ export function DiceOverlay({
   // Ref so grouped memo can read the current fallback without it being a dependency
   const fallbackThemeRef = useRef(fallbackTheme);
   fallbackThemeRef.current = fallbackTheme;
+
+  // ── Collect predetermined values from groups if using grouped path ──────
+  const resolvedPredetermined = useMemo<number[] | undefined>(() => {
+    // Simple path: use top-level predeterminedValues directly
+    if (predeterminedValues?.length) return predeterminedValues;
+    // Grouped path: concatenate per-group predeterminedValues
+    if (groupsProp?.length) {
+      const allValues: number[] = [];
+      let hasAny = false;
+      for (const g of groupsProp) {
+        if (g.predeterminedValues?.length) {
+          hasAny = true;
+          allValues.push(...g.predeterminedValues);
+        }
+      }
+      return hasAny ? allValues : undefined;
+    }
+    return undefined;
+  }, [predeterminedValues, groupsProp]);
 
   // ── Simple path: only recomputes when the notation string itself changes ────
   // Short-circuits when groups is provided — groups is the authoritative source.
@@ -129,7 +149,10 @@ export function DiceOverlay({
     if (firedRef.current) return;
     firedRef.current = true;
     let result: RollResult;
-    if (groupsProp?.length) {
+    if (resolvedPredetermined?.length) {
+      // Predetermined: use the provided values directly
+      result = buildPredeterminedRollResult(combinedNotation, expanded, resolvedPredetermined, registry);
+    } else if (groupsProp?.length) {
       // Advanced: instantGroupedRoll handles per-group labels
       result = instantGroupedRoll(groupsProp, registry);
     } else {
@@ -219,6 +242,7 @@ export function DiceOverlay({
               timeout={timeout}
               onRollComplete={handleComplete}
               soundEngine={soundEngine}
+              predeterminedValues={resolvedPredetermined}
             />
           </Suspense>
         </Canvas>

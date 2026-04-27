@@ -24,10 +24,6 @@ const MAX_SPEED = 6;
 const HIT_FREQ_LO = 800;
 const HIT_FREQ_HI = 3000;
 
-/** Settle thud: lower frequency, longer decay */
-const SETTLE_FREQ = 800;
-const SETTLE_DURATION = 0.12;
-
 // ─── Engine ───────────────────────────────────────────────────────────────────
 
 /**
@@ -51,11 +47,9 @@ export class DiceSoundEngine {
   private noiseBuffer: AudioBuffer | null = null;
   private lastHitTime = 0;
   private volume: number;
-  private settleEnabled: boolean;
 
   constructor(config: SoundConfig = {}) {
     this.volume = Math.max(0, Math.min(1, config.volume ?? 0.6));
-    this.settleEnabled = config.settleSound ?? true;
   }
 
   // ── Lazy init ─────────────────────────────────────────────────────────────
@@ -151,43 +145,7 @@ export class DiceSoundEngine {
     src.stop(ctx.currentTime + NOISE_DURATION);
   }
 
-  /**
-   * Play a low-pitched "thud" when a die comes to rest.
-   * Only fires if `settleSound` is enabled in the config.
-   */
-  playSettle(): void {
-    if (!this.settleEnabled) return;
 
-    const ctx = this.ensureContext();
-
-    // Use a longer noise buffer for the settle sound
-    const length = Math.ceil(ctx.sampleRate * SETTLE_DURATION);
-    const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < length; i++) {
-      data[i] = Math.random() * 2 - 1;
-    }
-
-    const src = ctx.createBufferSource();
-    src.buffer = buffer;
-
-    const filter = ctx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.value = SETTLE_FREQ;
-    filter.Q.value = 0.7;
-
-    const gain = ctx.createGain();
-    const peak = this.volume * 0.35;
-    gain.gain.setValueAtTime(0.001, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(peak, ctx.currentTime + 0.005);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + SETTLE_DURATION);
-
-    src.connect(filter);
-    filter.connect(gain);
-    gain.connect(ctx.destination);
-    src.start(ctx.currentTime);
-    src.stop(ctx.currentTime + SETTLE_DURATION);
-  }
 
   /** Release the AudioContext.  Safe to call if never initialised. */
   dispose(): void {

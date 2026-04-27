@@ -90,8 +90,6 @@ export interface DieDefinition {
 export interface SoundConfig {
   /** Master volume 0–1. Default: 0.6 */
   volume?: number;
-  /** Play a low thud when a die settles. Default: true */
-  settleSound?: boolean;
 }
 
 // ─── Component API ───────────────────────────────────────────────────────────
@@ -112,6 +110,13 @@ export interface DiceGroup {
   config?: DiceThemeConfig;
   /** Label to tag results with, e.g. "healing", "attack" */
   label?: string;
+  /**
+   * Predetermined results for this group's dice.
+   * Values are final user-facing numbers (e.g. 17 for a d20, 73 for d100).
+   * Array length must match the number of dice in the notation.
+   * d100 values are decomposed internally into tens+ones.
+   */
+  predeterminedValues?: number[];
 }
 
 export interface CustomTextureMap {
@@ -153,6 +158,15 @@ interface ReactTTRPGDiceBase {
    * Default: `false` (no sound).
    */
   sound?: boolean | SoundConfig;
+  /**
+   * Predetermined results for all dice in the roll (simple path).
+   * Values are final user-facing numbers (e.g. 17 for a d20, 73 for d100).
+   * Array length must match the number of dice in the notation.
+   * d100 counts as one entry (decomposed internally into tens+ones).
+   * Dice display scrambled symbols during flight and reveal the real
+   * values when they settle.
+   */
+  predeterminedValues?: number[];
 }
 
 /** Simple path: a single notation string; all dice share the same theme. */

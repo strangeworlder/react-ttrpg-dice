@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] — 2026-04-27
+
+### Added
+
+- **Predetermined roll values** — pass known results to the dice roller so the
+  physics animation plays normally but reveals the correct values on settle.
+  Designed for multiplayer sync: the server rolls, clients receive the values
+  and watch the dice tumble to the pre-decided outcome.
+
+  - **Simple path** — `predeterminedValues` prop on `<DiceOverlay>` and the
+    new `RollOptions` argument to `roll(notation, opts)`:
+    ```tsx
+    roll('2d20 + 1d6', { predeterminedValues: [17, 4, 3] });
+    ```
+  - **Advanced (grouped) path** — per-group `predeterminedValues` in
+    `DiceGroup`, consumed by `rollGroups()`:
+    ```tsx
+    rollGroups([
+      { notation: '1d20', label: 'attack', predeterminedValues: [17] },
+      { notation: '2d6',  label: 'damage', predeterminedValues: [4, 6] },
+    ]);
+    ```
+  - **Visual behaviour** — while in flight, dice show scrambled glyphs;
+    on settle (or timeout), each die flashes and reveals its real face value.
+  - **d100 decomposition** — a single consumer value (e.g. `73`) is split
+    internally into the tens die (`70`) and ones die (`3`).
+  - **`RollOptions`** is now exported from the public API.
+
+### Removed
+
+- **`SoundConfig.settleSound`** — the settle-thud option was removed during
+  the audio engine cleanup.  The `settle` sound path is no longer
+  independently controllable; use `volume` to adjust overall level.
+
+### Internal
+
+- **`create-die-material.ts` deleted** — material creation logic has been
+  consolidated into `face-textures.ts`, eliminating a redundant factory.
+
+---
+
 ## [0.2.0] — 2026-04-27
 
 ### Added
@@ -80,6 +121,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   component, dice notation parser, error boundary fallback, accessibility
   live-region announcements, `prefers-reduced-motion` support.
 
+[0.3.0]: https://github.com/strangeworlder/react-ttrpg-dice/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/strangeworlder/react-ttrpg-dice/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/strangeworlder/react-ttrpg-dice/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/strangeworlder/react-ttrpg-dice/compare/v0.0.2...v0.1.0

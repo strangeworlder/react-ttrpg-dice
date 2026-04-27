@@ -44,6 +44,23 @@ const GROUP_PRESETS: { name: string; groups: DiceGroup[] }[] = [
   },
 ];
 
+// ─── Predetermined roll presets ────────────────────────────────────────────────
+const PREDETERMINED_PRESETS: { name: string; notation: string; values: number[]; groups?: DiceGroup[] }[] = [
+  { name: '🔺 d4 → 3',           notation: '1d4',  values: [3] },
+  { name: '🎯 d20 → 20 (Nat!)', notation: '1d20', values: [20] },
+  { name: '🗡️ 2d6 → 3, 5',      notation: '2d6',  values: [3, 5] },
+  { name: '💯 d100 → 73',        notation: '1d100', values: [73] },
+  {
+    name: '⚔️ Attack(17) + Dmg(4,6)',
+    notation: '',
+    values: [],
+    groups: [
+      { notation: '1d20', config: { theme: 'crimson' }, label: 'attack', predeterminedValues: [17] },
+      { notation: '2d6',  config: { theme: 'ivory' },   label: 'damage', predeterminedValues: [4, 6] },
+    ],
+  },
+];
+
 const styles: Record<string, React.CSSProperties> = {
   body: {
     margin: 0, fontFamily: "'Inter', sans-serif",
@@ -257,6 +274,32 @@ export default function App() {
         >
           {isRolling ? 'Rolling…' : '🎲 Roll!'}
         </button>
+
+        <hr style={styles.divider} />
+
+        <label style={styles.label}>Predetermined Rolls (Multiplayer Sync)</label>
+        <p style={{ margin: '0 0 0.75rem', fontSize: 12, opacity: 0.45 }}>
+          Dice show scrambled runes during flight, then reveal the predetermined value on settle.
+        </p>
+        <div style={{ display: 'flex', gap: 6, marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+          {PREDETERMINED_PRESETS.map(pp => (
+            <button
+              key={pp.name}
+              style={{ ...styles.groupBtn, opacity: isRolling ? 0.5 : 1,
+                background: 'linear-gradient(135deg, #00b894, #00cec9)' }}
+              disabled={isRolling}
+              onClick={() => {
+                if (pp.groups) {
+                  rollGroups(pp.groups);
+                } else {
+                  doRoll(pp.notation, { predeterminedValues: pp.values });
+                }
+              }}
+            >
+              {pp.name}
+            </button>
+          ))}
+        </div>
 
         <hr style={styles.divider} />
 

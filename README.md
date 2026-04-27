@@ -8,9 +8,10 @@ Dice are rendered with [Three.js](https://threejs.org/) via [React Three Fiber](
 
 - **Full polyhedral set** — d4, d6, d8, d10, d12, d20, and d100 (percentile)
 - **Real physics** — Rapier rigid-body simulation with hull colliders, CCD, and progressive damping
-- **Procedural sound** — opt-in collision and settle audio via Web Audio synthesis — zero audio files, zero dependencies
+- **Procedural sound** — opt-in collision audio via Web Audio synthesis — zero audio files, zero dependencies
 - **5 built-in themes** — Obsidian, Ivory, Crimson, Glass (transmission), Metal
 - **Multi-color dice groups** — roll dice of different themes in a single roll for attack vs. damage, advantage, etc.
+- **Predetermined rolls** — pass known results so the animation plays normally and reveals the right values on settle; designed for server-authoritative multiplayer sync
 - **Camera angle control** — tilt the orthographic camera for subtle or dramatic perspective
 - **Standard notation** — `"2d6"`, `"1d20 + 1d4"`, `"1d100"`, etc.
 - **Full-page overlay** — renders on a fixed `z-index: 9999` layer; dice tumble over your UI then fade out
@@ -152,11 +153,11 @@ Dice collision sounds are synthesised procedurally — no audio files required.
 Enable with `sound={true}` or pass a `SoundConfig` to customise:
 
 ```tsx
-// Defaults (volume: 0.6, settle thud: on)
+// Defaults (volume: 0.6)
 useDiceRoll({ sound: true });
 
-// Custom volume, disable settle thud
-useDiceRoll({ sound: { volume: 0.4, settleSound: false } });
+// Custom volume
+useDiceRoll({ sound: { volume: 0.4 } });
 ```
 
 The sound engine uses a single pre-generated white-noise `AudioBuffer`, shaped
@@ -233,6 +234,54 @@ const damageTotal = result.rolls
 Groups without a `config` inherit the top-level theme (or `obsidian` by default).
 Groups without a `label` will have `group: undefined` in results.
 
+## 🎯 Predetermined Rolls
+
+Pass known dice results so the 3D physics animation plays normally but each die
+reveals the correct value when it settles — ideal for server-authoritative
+multiplayer where the server rolls and clients animate the outcome.
+
+While in flight, dice show scrambled glyphs. On settle they flash and reveal
+their real face values. If the timeout fires before physics settles, all dice
+reveal immediately.
+
+### Simple path — `roll(notation, opts)`
+
+```tsx
+const { roll, DiceOverlayPortal } = useDiceRoll({ onRollComplete: handleResult });
+
+// Server tells us the result is [17, 4, 3] for '2d20 + 1d6'
+roll('2d20 + 1d6', { predeterminedValues: [17, 4, 3] });
+```
+
+### Simple path — `<DiceOverlay>` prop
+
+```tsx
+<DiceOverlay
+  roll="2d20 + 1d6"
+  predeterminedValues={[17, 4, 3]}
+  onRollComplete={handleResult}
+/>
+```
+
+### Advanced path — per-group predetermined values
+
+Each `DiceGroup` accepts its own `predeterminedValues` array:
+
+```tsx
+rollGroups([
+  { notation: '1d20', config: { theme: 'crimson' }, label: 'attack', predeterminedValues: [17] },
+  { notation: '2d6',  config: { theme: 'ivory' },   label: 'damage', predeterminedValues: [4, 6] },
+]);
+```
+
+### d100 values
+
+Pass a single composed percentile value; the library decomposes it internally:
+
+```tsx
+roll('1d100', { predeterminedValues: [73] }); // tens die → 70, ones die → 3
+```
+
 ## 📖 API Reference
 
 ### `useDiceRoll(options?)`
@@ -254,7 +303,7 @@ React hook that manages roll state and renders the 3D overlay.
 
 | Property | Type | Description |
 | --- | --- | --- |
-| `roll(notation)` | `(string) => void` | Start a roll with the given notation |
+| `roll(notation, opts?)` | `(string, RollOptions?) => void` | Start a roll with the given notation |
 | `rollGroups(groups)` | `(DiceGroup[]) => void` | Advanced: roll multiple groups with per-group themes |
 | `isRolling` | `boolean` | `true` while physics is running |
 | `result` | `RollResult` or `null` | Latest roll result, or `null` |
@@ -278,6 +327,7 @@ Provide **either** `roll` (simple) **or** `groups` (advanced) — not both.
 | `timeout` | `number` | — | `6000` | Hard timeout (ms) |
 | `cameraAngle` | `CameraAngle` | — | `{ x: 0, z: 0 }` | Offset camera from top-down |
 | `sound` | `boolean \| SoundConfig` | — | `false` | Enable procedural collision sounds |
+| `predeterminedValues` | `number[]` | — | — | Override physics results with known values (simple path) |
 
 \* Provide `roll` for simple notation or `groups` for multi-themed rolls — the props are mutually exclusive.
 
@@ -299,15 +349,31 @@ interface SingleDieResult {
 }
 ```
 
+### `RollOptions`
+
+Passed as the second argument to `roll(notation, opts)`:
+
+```ts
+interface RollOptions {
+  /**
+   * Predetermined results for each die in the notation.
+   * Values are final user-facing numbers (e.g. 17 for a d20, 73 for d100).
+   * d100 counts as one entry (decomposed internally into tens+ones).
+   */
+  predeterminedValues?: number[];
+}
+```
+
 ### `DiceGroup`
 
 Used with `rollGroups()` for advanced multi-themed rolls:
 
 ```ts
 interface DiceGroup {
-  notation: string;          // Dice notation for this group, e.g. "2d6"
-  config?: DiceThemeConfig;  // Theme/color override for these dice
-  label?: string;            // Label to tag results, e.g. "healing"
+  notation: string;               // Dice notation for this group, e.g. "2d6"
+  config?: DiceThemeConfig;       // Theme/color override for these dice
+  label?: string;                 // Label to tag results, e.g. "healing"
+  predeterminedValues?: number[]; // Override physics results for this group
 }
 ```
 
@@ -341,8 +407,6 @@ interface CameraAngle {
 interface SoundConfig {
   /** Master volume 0–1. Default: 0.6 */
   volume?: number;
-  /** Play a low thud when a die settles. Default: true */
-  settleSound?: boolean;
 }
 ```
 

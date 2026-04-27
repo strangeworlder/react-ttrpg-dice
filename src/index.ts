@@ -3,6 +3,7 @@
 // ─── Main public API ──────────────────────────────────────────────────────────
 export { DiceOverlay }    from './components/dice-overlay.js';
 export { useDiceRoll }    from './use-dice-roll.js'; // source: use-dice-roll.tsx
+export type { RollOptions } from './use-dice-roll.js';
 
 // ─── Registry & parser (advanced use) ────────────────────────────────────────
 export { DieRegistry }          from './registry.js';

@@ -38,3 +38,54 @@ export function buildRollResult(
 
   return { notation, total: rolls.reduce((s, r) => s + r.value, 0), rolls };
 }
+
+/**
+ * Assembles a RollResult from consumer-provided predetermined values.
+ * The values array is indexed by "logical" die — d100 counts as ONE entry
+ * (the composed value, e.g. 73) rather than two physical d10s.
+ *
+ * @param notation       - Combined notation string
+ * @param expandedDice   - Flat list of physical dice (d100 is two d10 entries)
+ * @param values         - Predetermined results, one per *logical* die
+ * @param registry       - Die registry for side count lookups
+ */
+export function buildPredeterminedRollResult(
+  notation: string,
+  expandedDice: ExpandedDie[],
+  values: number[],
+  registry: DieRegistry,
+): RollResult {
+  const rolls: SingleDieResult[] = [];
+  const processedPairs = new Set<string>();
+  let valueIdx = 0;
+
+  for (const die of expandedDice) {
+    // d100 pair: consume one value for both physical dice
+    if (die.pairId) {
+      if (processedPairs.has(die.pairId)) continue;
+      processedPairs.add(die.pairId);
+
+      const d100 = values[valueIdx++] ?? 1;
+      rolls.push({
+        type: 'd100',
+        value: d100,
+        isMax: d100 === 100,
+        isMin: d100 === 1,
+        group: die.group,
+      });
+    } else {
+      const def   = registry.get(die.registryId);
+      const value = values[valueIdx++] ?? 1;
+      rolls.push({
+        type: die.publicType,
+        value,
+        isMax: value === def.sides,
+        isMin: value === 1,
+        group: die.group,
+      });
+    }
+  }
+
+  return { notation, total: rolls.reduce((s, r) => s + r.value, 0), rolls };
+}
+

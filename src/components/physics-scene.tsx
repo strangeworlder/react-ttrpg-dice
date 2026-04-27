@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useMemo, useCallback } from 'react';
+import { useRef, useEffect, useMemo, useCallback, useState } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
 import { Physics, CuboidCollider } from '@react-three/rapier';
 import type { RapierRigidBody } from '@react-three/rapier';
@@ -12,7 +12,7 @@ import { DieMesh } from './die-mesh.js';
 import { calculateSpawnPositions } from '../physics/spawn-grid.js';
 import { readDieResult, COCKED_THRESHOLD } from '../physics/read-die.js';
 import { extractFaceNormals } from '../geometry/face-groups.js';
-import { buildRollResult } from '../math/build-roll-result.js';
+import { buildRollResult, buildPredeterminedRollResult } from '../math/build-roll-result.js';
 import type { DiceSoundEngine } from '../sound/dice-sound.js';
 
 // ─── Physics tuning ────────────────────────────────────────────────────────────
@@ -61,14 +61,26 @@ interface PhysicsSceneProps {
   timeout: number;
   onRollComplete: (result: RollResult) => void;
   soundEngine?: DiceSoundEngine | null;
+  /**
+   * Predetermined values for each logical die.
+   * When provided, physics reading is skipped and these values are used
+   * as the final result. Dice display scrambled glyphs until settle.
+   * d100 counts as one entry (the composed value, e.g. 73).
+   */
+  predeterminedValues?: number[];
 }
 
-export function PhysicsScene({ expandedDice, notation, registry, theme, timeout, onRollComplete, soundEngine }: PhysicsSceneProps) {
+export function PhysicsScene({
+  expandedDice, notation, registry, theme, timeout, onRollComplete,
+  soundEngine, predeterminedValues,
+}: PhysicsSceneProps) {
   const { size, camera } = useThree();
   const cam = camera as OrthographicCamera;
 
   const halfX = size.width  / (2 * (cam.zoom || 60));
   const halfZ = size.height / (2 * (cam.zoom || 60));
+
+  const isPredetermined = !!predeterminedValues?.length;
 
   // ─── Refs ──────────────────────────────────────────────────────────────────
   const resolvedValues = useRef<Map<string, number>>(new Map());
@@ -79,6 +91,48 @@ export function PhysicsScene({ expandedDice, notation, registry, theme, timeout,
   const frameCount     = useRef(0);
   const elapsedTime    = useRef(0);
   const stillCount     = useRef(0);
+
+  // ─── Reveal state for predetermined rolls ─────────────────────────────────
+  // Track which dice have been signalled to reveal their real values
+  const [revealedDice, setRevealedDice] = useState<Set<string>>(new Set());
+
+  // ─── Per-physical-die predetermined values ────────────────────────────────
+  // Maps each physical die's ID to the value it should display on reveal.
+  // d100 is decomposed: consumer's "73" → tens die shows 70, ones die shows 3.
+  const perDieValues = useMemo<Map<string, number>>(() => {
+    const m = new Map<string, number>();
+    if (!isPredetermined || !predeterminedValues) return m;
+
+    const processedPairs = new Set<string>();
+    let valueIdx = 0;
+
+    for (const die of expandedDice) {
+      if (die.pairId) {
+        // d100 pair — decompose composed value into tens + ones
+        if (processedPairs.has(die.pairId)) continue;
+        processedPairs.add(die.pairId);
+
+        const composed = predeterminedValues[valueIdx++] ?? 1;
+        // Decompose: 73 → tens=70, ones=3; 100 → tens=0(=00), ones=0(=0)
+        const tens = composed === 100 ? 0 : Math.floor(composed / 10) * 10;
+        const ones = composed === 100 ? 0 : composed % 10;
+
+        const tensDie = expandedDice.find(d => d.pairId === die.pairId && d.isTens);
+        const onesDie = expandedDice.find(d => d.pairId === die.pairId && !d.isTens);
+        if (tensDie) m.set(tensDie.id, tens);
+        if (onesDie) m.set(onesDie.id, ones);
+      } else {
+        const value = predeterminedValues[valueIdx++] ?? 1;
+        // d10 standalone: consumer passes 1–10, but face shows 0–9 (10 → 0)
+        if (die.registryId === 'd10') {
+          m.set(die.id, value === 10 ? 0 : value);
+        } else {
+          m.set(die.id, value);
+        }
+      }
+    }
+    return m;
+  }, [isPredetermined, predeterminedValues, expandedDice]);
 
   // ─── Geometry-derived normals ──────────────────────────────────────────────
   const geoNormals = useMemo<Map<RegistryId, [number, number, number][]>>(() => {
@@ -100,15 +154,28 @@ export function PhysicsScene({ expandedDice, notation, registry, theme, timeout,
   const fireComplete = useCallback(() => {
     if (completed.current) return;
     completed.current = true;
-    const result = buildRollResult(notation, expandedDice, resolvedValues.current, registry);
+
+    let result: RollResult;
+    if (isPredetermined) {
+      // Use the predetermined values — skip physics reading entirely
+      result = buildPredeterminedRollResult(notation, expandedDice, predeterminedValues!, registry);
+    } else {
+      result = buildRollResult(notation, expandedDice, resolvedValues.current, registry);
+    }
     onRollComplete(result);
-  }, [notation, expandedDice, registry, onRollComplete]);
+  }, [notation, expandedDice, registry, onRollComplete, isPredetermined, predeterminedValues]);
 
   // Hard timeout — absolute last resort
   useEffect(() => {
-    const t = setTimeout(fireComplete, timeout);
+    const t = setTimeout(() => {
+      // For predetermined rolls, reveal all dice on timeout
+      if (isPredetermined) {
+        setRevealedDice(new Set(expandedDice.map(d => d.id)));
+      }
+      fireComplete();
+    }, timeout);
     return () => clearTimeout(t);
-  }, [fireComplete, timeout]);
+  }, [fireComplete, timeout, isPredetermined, expandedDice]);
 
   const registerRb = useCallback((id: string, rb: RapierRigidBody) => {
     rbMap.current.set(id, rb);
@@ -126,6 +193,12 @@ export function PhysicsScene({ expandedDice, notation, registry, theme, timeout,
     if (settledIds.current.has(id)) return true;
     const die = expandedDice.find(d => d.id === id);
     if (!die) return false;
+
+    // For predetermined rolls, skip reading — just mark as settled
+    if (isPredetermined) {
+      settledIds.current.add(id);
+      return true;
+    }
 
     const def = registry.get(die.registryId);
     const gn  = geoNormals.get(die.registryId);
@@ -154,11 +227,23 @@ export function PhysicsScene({ expandedDice, notation, registry, theme, timeout,
   /** Primary settle path: Rapier onSleep callback per die */
   const handleSleep = useCallback((dieId: string, rb: RapierRigidBody) => {
     if (completed.current) return;
-    if (resolveDie(dieId, rb) && settledIds.current.size >= expandedDice.length) {
-      fireComplete();
+
+    if (resolveDie(dieId, rb)) {
+      // For predetermined rolls, signal this die to reveal
+      if (isPredetermined) {
+        setRevealedDice(prev => {
+          const next = new Set(prev);
+          next.add(dieId);
+          return next;
+        });
+      }
+
+      if (settledIds.current.size >= expandedDice.length) {
+        fireComplete();
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [expandedDice, geoNormals, registry, fireComplete]);
+  }, [expandedDice, geoNormals, registry, fireComplete, isPredetermined]);
 
   useFrame((_, delta) => {
     if (completed.current) return;
@@ -231,6 +316,12 @@ export function PhysicsScene({ expandedDice, notation, registry, theme, timeout,
     for (const [id, rb] of rbMap.current) {
       resolveDie(id, rb);
     }
+
+    // For predetermined rolls, reveal all remaining dice
+    if (isPredetermined) {
+      setRevealedDice(new Set(expandedDice.map(d => d.id)));
+    }
+
     fireComplete();
   });
 
@@ -272,6 +363,9 @@ export function PhysicsScene({ expandedDice, notation, registry, theme, timeout,
             onRegister={registerRb}
             onUnregister={unregisterRb}
             soundEngine={soundEngine}
+            predetermined={isPredetermined}
+            revealSignal={revealedDice.has(die.id)}
+            predeterminedValue={perDieValues.get(die.id)}
           />
         ))}
       </Physics>

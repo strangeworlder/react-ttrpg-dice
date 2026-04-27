@@ -1,5 +1,3 @@
-"use client";
-
 import * as THREE from 'three';
 import { quat, vec3 } from '@react-three/rapier';
 import type { RapierRigidBody } from '@react-three/rapier';
