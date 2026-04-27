@@ -4,12 +4,13 @@ import { Suspense, useEffect, useRef, useState, useMemo, Component } from 'react
 import type { ReactNode } from 'react';
 import { Canvas } from '@react-three/fiber';
 import * as THREE from 'three';
-import type { ReactTTRPGDiceProps, RollResult } from '../types.js';
+import type { ReactTTRPGDiceProps, RollResult, SoundConfig } from '../types.js';
 import { DieRegistry } from '../registry.js';
 import { parseDiceNotation, expandNotation, expandGroups } from '../parser.js';
 import { instantRoll, instantGroupedRoll } from '../math/instant-roll.js';
 import { applyTheme } from '../themes/apply-theme.js';
 import { PhysicsScene } from './physics-scene.js';
+import { DiceSoundEngine } from '../sound/dice-sound.js';
 
 // ─── Timing constants ─────────────────────────────────────────────────────────
 const LINGER_MS = 2200;   // dice stay fully visible after result
@@ -48,8 +49,13 @@ class CanvasErrorBoundary extends Component<EBProps, EBState> {
 // ─── Main Component ───────────────────────────────────────────────────────────
 export function DiceOverlay({
   roll, config, groups: groupsProp, customRegistry, onRollComplete, onRollStart,
-  timeout = 6000,
+  timeout = 6000, cameraAngle, sound,
 }: ReactTTRPGDiceProps) {
+  // Camera position: default top-down with optional x/z tilt
+  const cameraPosition = useMemo<[number, number, number]>(
+    () => [cameraAngle?.x ?? 0, 20, cameraAngle?.z ?? 0],
+    [cameraAngle?.x, cameraAngle?.z],
+  );
   const [announcement, setAnnouncement] = useState('');
   const [opacity, setOpacity]           = useState(0);   // starts invisible, fades in
   const [transition, setTransition]     = useState('opacity 0.3s ease-in');
@@ -59,15 +65,30 @@ export function DiceOverlay({
 
   const registry = useMemo(() => new DieRegistry(customRegistry), [customRegistry]);
   const fallbackTheme = useMemo(() => applyTheme(config), [config]);
+
+  // ── Sound engine (lazy, opt-in) ──────────────────────────────────────────
+  const soundEngine = useMemo(() => {
+    if (!sound) return null;
+    const cfg: SoundConfig = typeof sound === 'object' ? sound : {};
+    return new DiceSoundEngine(cfg);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!sound]); // only re-create when toggled on/off, not on config reference changes
+
+  useEffect(() => {
+    soundEngine?.resume();
+    return () => { soundEngine?.dispose(); };
+  }, [soundEngine]);
   // Ref so grouped memo can read the current fallback without it being a dependency
   const fallbackThemeRef = useRef(fallbackTheme);
   fallbackThemeRef.current = fallbackTheme;
 
   // ── Simple path: only recomputes when the notation string itself changes ────
+  // Short-circuits when groups is provided — groups is the authoritative source.
   const simpleData = useMemo(() => {
-    const p = parseDiceNotation(roll);
-    return { dice: expandNotation(p), notation: roll, parsed: p };
-  }, [roll]);
+    if (groupsProp?.length) return null;
+    const p = parseDiceNotation(roll as string);
+    return { dice: expandNotation(p), notation: roll as string, parsed: p };
+  }, [roll, groupsProp]);
 
   // ── Advanced path: only recomputes when the groups array itself changes ─────
   // fallbackTheme is read from a ref so a theme-reference change alone doesn't
@@ -79,9 +100,9 @@ export function DiceOverlay({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupsProp]);
 
-  const expanded         = groupedData?.dice     ?? simpleData.dice;
-  const combinedNotation = groupedData?.notation  ?? simpleData.notation;
-  const parsed           = groupedData ? null     : simpleData.parsed;
+  const expanded         = groupedData?.dice     ?? simpleData?.dice     ?? [];
+  const combinedNotation = groupedData?.notation  ?? simpleData?.notation ?? '';
+  const parsed           = groupedData ? null     : simpleData?.parsed    ?? null;
 
   // Fade-in when overlay mounts
   useEffect(() => {
@@ -176,7 +197,7 @@ export function DiceOverlay({
         <Canvas
           style={overlayStyle(opacity, transition)}
           orthographic
-          camera={{ position: [0, 20, 0], zoom: 60, near: 0.1, far: 100, up: [0, 0, -1] }}
+          camera={{ position: cameraPosition, zoom: 60, near: 0.1, far: 100, up: [0, 0, -1] }}
           gl={{
             alpha: true,
             antialias: true,
@@ -197,6 +218,7 @@ export function DiceOverlay({
               theme={fallbackTheme}
               timeout={timeout}
               onRollComplete={handleComplete}
+              soundEngine={soundEngine}
             />
           </Suspense>
         </Canvas>

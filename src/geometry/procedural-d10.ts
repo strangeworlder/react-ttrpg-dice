@@ -1,24 +1,46 @@
 import * as THREE from 'three';
 
 /**
- * Pentagonal trapezohedron (D10) — Three.js has no built-in for this shape.
- * 12 vertices: 2 poles + two offset pentagonal rings.
+ * Traditional pentagonal trapezohedron (D10).
+ *
+ * 12 vertices: 2 apex poles + two offset pentagonal rings.
  * 10 kite-shaped faces, triangulated to 20 triangles.
+ *
+ * The proportions enforce a critical geometric constraint so that each
+ * kite face is perfectly planar (all 4 vertices coplanar):
+ *
+ *     ringY / poleY  =  (1 − cos 36°) / (1 + cos 36°)  ≈  0.1056
+ *
+ * Without this ratio the quad is "bent" along its diagonal, producing a
+ * visible crease on each face.  With it every face is a true flat kite —
+ * exactly like a real injection-moulded d10.
+ *
+ * Overall sizing targets a bounding radius of ≈ 0.60 so the d10 sits
+ * visually alongside d8 (0.65), d12 (0.65), d4 (0.65), etc.
  */
-export function createD10Geometry(radius = 0.62, h = 0.5): THREE.BufferGeometry {
-  const step = (2 * Math.PI) / 5;
-  const off  = Math.PI / 5; // 36° offset
-  const r    = radius * Math.cos(Math.PI / 5); // ≈ 0.809 * radius
+export function createD10Geometry(): THREE.BufferGeometry {
+  // ── Sizing ────────────────────────────────────────────────────────────────
+  // ringR  — equatorial radius (widest point of the die)
+  // poleY  — half-height (apex above/below origin)
+  // ringY  — derived from poleY via the planarity constraint
+  const ringR = 0.54;
+  const poleY = 0.58;
+  const ringY = poleY * (1 - Math.cos(Math.PI / 5)) / (1 + Math.cos(Math.PI / 5));
+  // ringY ≈ 0.0613  — rings sit very close to the equator, which is correct:
+  // a real d10 has its widest band of vertices near the middle.
 
-  const top = new THREE.Vector3(0,  radius, 0);
-  const bot = new THREE.Vector3(0, -radius, 0);
+  const step = (2 * Math.PI) / 5;
+  const off  = Math.PI / 5; // 36° offset between upper and lower ring
+
+  const top = new THREE.Vector3(0,  poleY, 0);
+  const bot = new THREE.Vector3(0, -poleY, 0);
 
   const upper: THREE.Vector3[] = [];
   const lower: THREE.Vector3[] = [];
   for (let i = 0; i < 5; i++) {
     const a = i * step;
-    upper.push(new THREE.Vector3(r * Math.sin(a),      h * radius, r * Math.cos(a)));
-    lower.push(new THREE.Vector3(r * Math.sin(a + off), -h * radius, r * Math.cos(a + off)));
+    upper.push(new THREE.Vector3(ringR * Math.sin(a),       ringY, ringR * Math.cos(a)));
+    lower.push(new THREE.Vector3(ringR * Math.sin(a + off), -ringY, ringR * Math.cos(a + off)));
   }
 
   const positions: number[] = [];

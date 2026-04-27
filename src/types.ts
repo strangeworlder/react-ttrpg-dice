@@ -86,6 +86,14 @@ export interface DieDefinition {
   vertexPositions?: [number, number, number][];
 }
 
+// ─── Sound ───────────────────────────────────────────────────────────────────
+export interface SoundConfig {
+  /** Master volume 0–1. Default: 0.6 */
+  volume?: number;
+  /** Play a low thud when a die settles. Default: true */
+  settleSound?: boolean;
+}
+
 // ─── Component API ───────────────────────────────────────────────────────────
 export interface DiceThemeConfig {
   theme?: 'obsidian' | 'ivory' | 'crimson' | 'glass' | 'metal';
@@ -110,12 +118,21 @@ export interface CustomTextureMap {
   [dieType: string]: { [faceValue: number]: string };
 }
 
-export interface ReactTTRPGDiceProps {
-  /** Standard dice notation: "2d20 + 1d6", "1d100", etc. */
-  roll: string;
+/**
+ * Controls the camera viewing angle.
+ * Values are in world-space units of offset from the straight top-down position.
+ * Small values (e.g. 2–5) give a subtle tilt; larger values create a more
+ * dramatic perspective.  Default is `{ x: 0, z: 0 }` (directly overhead).
+ */
+export interface CameraAngle {
+  /** Horizontal offset (left/right tilt). Default: 0 */
+  x?: number;
+  /** Depth offset (forward/backward tilt). Default: 0 */
+  z?: number;
+}
+
+interface ReactTTRPGDiceBase {
   config?: DiceThemeConfig;
-  /** Advanced: per-group dice with independent themes. Overrides `roll` + `config`. */
-  groups?: DiceGroup[];
   customTextures?: CustomTextureMap;
   /** Override or extend built-in die definitions */
   customRegistry?: DieDefinition[];
@@ -124,4 +141,34 @@ export interface ReactTTRPGDiceProps {
   onRollStart?: () => void;
   /** Hard timeout ms before forcing results. Default: 4000 */
   timeout?: number;
+  /**
+   * Camera viewing angle — offsets the camera from the default straight
+   * top-down position to create a tilted perspective.
+   * Default: `{ x: 0, z: 0 }` (directly overhead).
+   */
+  cameraAngle?: CameraAngle;
+  /**
+   * Enable dice collision sounds via procedural Web Audio synthesis.
+   * Pass `true` for defaults, or a `SoundConfig` object to customise.
+   * Default: `false` (no sound).
+   */
+  sound?: boolean | SoundConfig;
 }
+
+/** Simple path: a single notation string; all dice share the same theme. */
+interface ReactTTRPGDiceSimpleProps extends ReactTTRPGDiceBase {
+  /** Standard dice notation: "2d20 + 1d6", "1d100", etc. */
+  roll: string;
+  /** Cannot be combined with `roll` — use one or the other. */
+  groups?: never;
+}
+
+/** Advanced path: per-group dice with independent themes. Overrides `roll` + `config`. */
+interface ReactTTRPGDiceGroupsProps extends ReactTTRPGDiceBase {
+  /** Cannot be combined with `groups` — use one or the other. */
+  roll?: never;
+  /** Advanced: per-group dice with independent themes. Overrides `roll` + `config`. */
+  groups: DiceGroup[];
+}
+
+export type ReactTTRPGDiceProps = ReactTTRPGDiceSimpleProps | ReactTTRPGDiceGroupsProps;

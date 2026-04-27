@@ -8,8 +8,10 @@ Dice are rendered with [Three.js](https://threejs.org/) via [React Three Fiber](
 
 - **Full polyhedral set** — d4, d6, d8, d10, d12, d20, and d100 (percentile)
 - **Real physics** — Rapier rigid-body simulation with hull colliders, CCD, and progressive damping
+- **Procedural sound** — opt-in collision and settle audio via Web Audio synthesis — zero audio files, zero dependencies
 - **5 built-in themes** — Obsidian, Ivory, Crimson, Glass (transmission), Metal
 - **Multi-color dice groups** — roll dice of different themes in a single roll for attack vs. damage, advantage, etc.
+- **Camera angle control** — tilt the orthographic camera for subtle or dramatic perspective
 - **Standard notation** — `"2d6"`, `"1d20 + 1d4"`, `"1d100"`, etc.
 - **Full-page overlay** — renders on a fixed `z-index: 9999` layer; dice tumble over your UI then fade out
 - **Accessible** — live-region announcements, `prefers-reduced-motion` support (instant roll, no animation)
@@ -144,6 +146,43 @@ useDiceRoll({
 });
 ```
 
+## 🔊 Sound
+
+Dice collision sounds are synthesised procedurally — no audio files required.
+Enable with `sound={true}` or pass a `SoundConfig` to customise:
+
+```tsx
+// Defaults (volume: 0.6, settle thud: on)
+useDiceRoll({ sound: true });
+
+// Custom volume, disable settle thud
+useDiceRoll({ sound: { volume: 0.4, settleSound: false } });
+```
+
+The sound engine uses a single pre-generated white-noise `AudioBuffer`, shaped
+per-hit by a bandpass filter and exponential-decay gain envelope. Hit loudness
+and pitch scale with the die's speed and height at the moment of impact.
+
+The `AudioContext` is lazily created on the first roll — inside a user-gesture
+callback — so it automatically satisfies browser autoplay policies.
+
+## 📐 Camera Angle
+
+By default the camera looks straight down. Pass `cameraAngle` to create a
+tilted perspective:
+
+```tsx
+useDiceRoll({ cameraAngle: { x: 2, z: 3 } });
+
+// or on the component directly:
+<DiceOverlay roll="2d6" cameraAngle={{ x: 2, z: 3 }} onRollComplete={handler} />
+```
+
+| Axis | Effect |
+| --- | --- |
+| `x` | Horizontal offset (left/right tilt) |
+| `z` | Depth offset (forward/backward tilt) |
+
 ## 🎲 Dice Groups (Advanced)
 
 Roll multiple groups of dice with different themes in a single roll — useful for distinguishing attack vs. damage, positive vs. negative effects, advantage rolls, etc.
@@ -208,6 +247,8 @@ React hook that manages roll state and renders the 3D overlay.
 | `customRegistry` | `DieDefinition[]` | `[]` | Override or extend die definitions |
 | `onRollComplete` | `(r: RollResult) => void` | — | Callback fired when dice settle |
 | `timeout` | `number` | `6000` | Hard timeout (ms) before forcing |
+| `cameraAngle` | `CameraAngle` | `{ x: 0, z: 0 }` | Offset camera from top-down |
+| `sound` | `boolean \| SoundConfig` | `false` | Enable procedural collision sounds |
 
 #### Returns
 
@@ -224,15 +265,21 @@ React hook that manages roll state and renders the 3D overlay.
 
 The underlying overlay component (used internally by `useDiceRoll`).
 
+Provide **either** `roll` (simple) **or** `groups` (advanced) — not both.
+
 | Prop | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
-| `roll` | `string` | ✅ | — | Dice notation string |
+| `roll` | `string` | ✅\* | — | Dice notation string |
+| `groups` | `DiceGroup[]` | ✅\* | — | Advanced: per-group themed dice |
 | `config` | `DiceThemeConfig` | — | `{}` | Theme and color overrides |
-| `groups` | `DiceGroup[]` | — | — | Advanced: per-group themed dice |
 | `customRegistry` | `DieDefinition[]` | — | `[]` | Override or extend die definitions |
 | `onRollComplete` | `(r: RollResult) => void` | ✅ | — | Fires when all dice settle |
 | `onRollStart` | `() => void` | — | — | Fires when roll animation begins |
 | `timeout` | `number` | — | `6000` | Hard timeout (ms) |
+| `cameraAngle` | `CameraAngle` | — | `{ x: 0, z: 0 }` | Offset camera from top-down |
+| `sound` | `boolean \| SoundConfig` | — | `false` | Enable procedural collision sounds |
+
+\* Provide `roll` for simple notation or `groups` for multi-themed rolls — the props are mutually exclusive.
 
 ### `RollResult`
 
@@ -274,6 +321,28 @@ interface DiceThemeConfig {
   accentColor?: string;
   roughness?: number;
   metalness?: number;
+}
+```
+
+### `CameraAngle`
+
+```ts
+interface CameraAngle {
+  /** Horizontal offset (left/right tilt). Default: 0 */
+  x?: number;
+  /** Depth offset (forward/backward tilt). Default: 0 */
+  z?: number;
+}
+```
+
+### `SoundConfig`
+
+```ts
+interface SoundConfig {
+  /** Master volume 0–1. Default: 0.6 */
+  volume?: number;
+  /** Play a low thud when a die settles. Default: true */
+  settleSound?: boolean;
 }
 ```
 
@@ -341,6 +410,8 @@ src/
 │   ├── read-die.ts            # Read face value from physics body orientation
 │   ├── spawn-grid.ts          # Spawn position calculation
 │   └── throw-impulse.ts       # Random throw force generation
+├── sound/
+│   └── dice-sound.ts          # Procedural Web Audio collision sound engine
 ├── themes/
 │   ├── theme-definitions.ts   # Built-in theme presets
 │   ├── apply-theme.ts         # Config → ThemeDefinition resolver

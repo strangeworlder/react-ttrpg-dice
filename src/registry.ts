@@ -7,10 +7,12 @@ const p   = phi / Math.sqrt(3);        // ≈ 0.9342  (D20 group B/D)
 const q   = 1 / phi / Math.sqrt(3);   // ≈ 0.3568  (D20 group B/D)
 const L12 = Math.sqrt(1 + phi * phi); // ≈ 1.9021  (D12 normalisation)
 
-// D10 geometry constants (h = 0.5 · radius, ring radius r ≈ 0.809)
-const _rH =  0.608;  // horizontal magnitude of D10 unit face normal
-const _yU =  0.796;  // y of upper D10 face normals
-const _yL = -0.795;  // y of lower D10 face normals
+// D10 geometry constants — traditional flat-kite proportions
+// With rings near the equator the faces are nearly vertical, so the
+// horizontal normal component dominates.
+const _rH =  0.982;  // horizontal magnitude of D10 unit face normal
+const _yU =  0.190;  // y of upper D10 face normals
+const _yL = -0.190;  // y of lower D10 face normals
 
 // Helpers for D10 face normals
 function d10n(az: number, y: number): [number, number, number] {

@@ -23,4 +23,6 @@ export type {
   ParsedNotation,
   ParsedDieGroup,
   ExpandedDie,
+  CameraAngle,
+  SoundConfig,
 } from './types.js';

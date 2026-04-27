@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, createElement } from 'react';
-import type { RollResult, DiceThemeConfig, DiceGroup, DieDefinition } from './types.js';
+import type { RollResult, DiceThemeConfig, DiceGroup, DieDefinition, CameraAngle, SoundConfig } from './types.js';
 import { DiceOverlay } from './components/dice-overlay.js';
 
 // Must match LINGER_MS + FADE_MS in dice-overlay.tsx
@@ -12,6 +12,10 @@ export interface UseDiceRollOptions {
   config?: DiceThemeConfig;
   customRegistry?: DieDefinition[];
   timeout?: number;
+  /** Camera viewing angle — offsets from straight top-down. */
+  cameraAngle?: CameraAngle;
+  /** Enable dice collision sounds. Default: false */
+  sound?: boolean | SoundConfig;
 }
 
 export interface UseDiceRollReturn {
@@ -99,7 +103,9 @@ export function useDiceRoll(opts?: UseDiceRollOptions): UseDiceRollReturn {
         config:          optsRef.current?.config,
         customRegistry:  optsRef.current?.customRegistry,
         timeout:         optsRef.current?.timeout,
+        cameraAngle:     optsRef.current?.cameraAngle,
         onRollComplete:  handleComplete,
+        sound:           optsRef.current?.sound,
       })
     : null;
 

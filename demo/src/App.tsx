@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useDiceRoll } from 'react-ttrpg-dice';
-import type { DiceThemeConfig, DiceGroup } from 'react-ttrpg-dice';
+import type { DiceThemeConfig, DiceGroup, CameraAngle } from 'react-ttrpg-dice';
 
 const PRESETS = ['2d6', '1d20', '2d20 + 1d6', '4d6', '1d100', '1d12 + 1d8 + 1d4'];
 const THEMES: (DiceThemeConfig['theme'] | 'custom')[] = ['obsidian', 'ivory', 'crimson', 'glass', 'metal', 'custom'];
@@ -110,6 +110,21 @@ const styles: Record<string, React.CSSProperties> = {
     border: 'none', borderTop: '1px solid rgba(255,255,255,0.1)',
     margin: '1.25rem 0',
   },
+  sliderRow: {
+    display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8,
+  },
+  sliderLabel: {
+    width: 28, fontSize: 12, fontWeight: 600, opacity: 0.6, textTransform: 'uppercase' as const,
+  },
+  slider: {
+    flex: 1, accentColor: '#9b7fd4',
+  },
+  sliderValue: {
+    width: 30, fontSize: 12, fontFamily: 'monospace', opacity: 0.7, textAlign: 'right' as const,
+  },
+  anglePresets: {
+    display: 'flex', gap: 6, marginBottom: '0.75rem', flexWrap: 'wrap' as const,
+  },
 };
 
 export default function App() {
@@ -117,10 +132,15 @@ export default function App() {
   const [theme, setTheme] = useState<DiceThemeConfig['theme'] | 'custom'>('obsidian');
   const [customConfig, setCustomConfig] = useState<DiceThemeConfig>(randomCustomConfig);
 
+  const [cameraAngle, setCameraAngle] = useState<CameraAngle>({ x: 0, z: 0 });
+  const [soundOn, setSoundOn] = useState(true);
+
   const config: DiceThemeConfig = theme === 'custom' ? customConfig : { theme };
 
   const { roll: doRoll, rollGroups, isRolling, result, DiceOverlayPortal } = useDiceRoll({
     config,
+    cameraAngle,
+    sound: soundOn,
   });
 
   const handleRoll = () => {
@@ -173,6 +193,60 @@ export default function App() {
           {THEMES.map(t => (
             <button key={t} style={styles.themeBtn(theme === t)} onClick={() => setTheme(t)}>{t}</button>
           ))}
+        </div>
+
+        <label style={styles.label}>Camera Angle</label>
+        <div style={styles.anglePresets}>
+          {[
+            { name: 'Top-down', angle: { x: 0, z: 0 } },
+            { name: 'Slight tilt', angle: { x: 2, z: 3 } },
+            { name: 'Dramatic', angle: { x: 5, z: 6 } },
+            { name: 'Side view', angle: { x: 0, z: 8 } },
+          ].map(p => (
+            <button
+              key={p.name}
+              style={styles.themeBtn(
+                (cameraAngle.x ?? 0) === (p.angle.x ?? 0) &&
+                (cameraAngle.z ?? 0) === (p.angle.z ?? 0),
+              )}
+              onClick={() => setCameraAngle(p.angle)}
+            >
+              {p.name}
+            </button>
+          ))}
+        </div>
+        <div style={styles.sliderRow}>
+          <span style={styles.sliderLabel}>X</span>
+          <input
+            style={styles.slider}
+            type="range" min={-10} max={10} step={0.5}
+            value={cameraAngle.x ?? 0}
+            onChange={e => setCameraAngle(a => ({ ...a, x: parseFloat(e.target.value) }))}
+            aria-label="Camera tilt X"
+          />
+          <span style={styles.sliderValue}>{cameraAngle.x ?? 0}</span>
+        </div>
+        <div style={styles.sliderRow}>
+          <span style={styles.sliderLabel}>Z</span>
+          <input
+            style={styles.slider}
+            type="range" min={-10} max={10} step={0.5}
+            value={cameraAngle.z ?? 0}
+            onChange={e => setCameraAngle(a => ({ ...a, z: parseFloat(e.target.value) }))}
+            aria-label="Camera tilt Z"
+          />
+          <span style={styles.sliderValue}>{cameraAngle.z ?? 0}</span>
+        </div>
+
+        <label style={styles.label}>Sound</label>
+        <div style={{ marginBottom: '1.5rem' }}>
+          <button
+            style={styles.themeBtn(soundOn)}
+            onClick={() => setSoundOn(s => !s)}
+            aria-label={`Sound ${soundOn ? 'on' : 'off'}`}
+          >
+            {soundOn ? '🔊 On' : '🔇 Off'}
+          </button>
         </div>
 
         <button

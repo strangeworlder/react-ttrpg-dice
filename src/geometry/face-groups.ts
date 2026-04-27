@@ -112,6 +112,84 @@ function computePlanarUVs(geo: THREE.BufferGeometry): void {
 }
 
 /**
+ * D10-specific planar UV projection.
+ *
+ * Orients each kite face's texture so that the number's top points toward
+ * the kite apex (pole vertex), which is always the first vertex in each
+ * face group.  This gives every face a consistent "up" direction regardless
+ * of its world-space orientation — unlike the generic computePlanarUVs
+ * which picks an arbitrary tangent frame and can flip some faces.
+ */
+function computeD10PlanarUVs(geo: THREE.BufferGeometry): void {
+  const pos = geo.attributes.position as THREE.BufferAttribute;
+  const uv  = geo.attributes.uv as THREE.BufferAttribute;
+
+  const _v = new THREE.Vector3();
+  const _centroid = new THREE.Vector3();
+  const _a = new THREE.Vector3();
+  const _b = new THREE.Vector3();
+  const _c = new THREE.Vector3();
+  const _normal = new THREE.Vector3();
+  const _tangent = new THREE.Vector3();
+  const _bitangent = new THREE.Vector3();
+
+  for (const group of geo.groups) {
+    const start = group.start;
+    const count = group.count;
+
+    // 1. Centroid
+    _centroid.set(0, 0, 0);
+    for (let i = 0; i < count; i++) {
+      _v.fromBufferAttribute(pos, start + i);
+      _centroid.add(_v);
+    }
+    _centroid.divideScalar(count);
+
+    // 2. Face normal from first triangle
+    _a.fromBufferAttribute(pos, start);
+    _b.fromBufferAttribute(pos, start + 1);
+    _c.fromBufferAttribute(pos, start + 2);
+    _normal.crossVectors(
+      new THREE.Vector3().subVectors(_b, _a),
+      new THREE.Vector3().subVectors(_c, _a),
+    ).normalize();
+    if (_normal.dot(_centroid) < 0) _normal.negate();
+
+    // 3. Orient "up" toward the pole vertex (first vertex = kite apex).
+    //    Project pole→centroid direction onto the face plane for the V+ axis.
+    _bitangent.fromBufferAttribute(pos, start).sub(_centroid);
+    _bitangent.addScaledVector(_normal, -_normal.dot(_bitangent)).normalize();
+    // tangent = bitangent × normal  (right-handed UV frame in face plane)
+    _tangent.crossVectors(_bitangent, _normal).normalize();
+
+    // 4. Project to 2D and find bounds
+    const coords: [number, number][] = [];
+    for (let i = 0; i < count; i++) {
+      _v.fromBufferAttribute(pos, start + i).sub(_centroid);
+      coords.push([_v.dot(_tangent), _v.dot(_bitangent)]);
+    }
+
+    let minU = Infinity, maxU = -Infinity, minV = Infinity, maxV = -Infinity;
+    for (const [cu, cv] of coords) {
+      if (cu < minU) minU = cu; if (cu > maxU) maxU = cu;
+      if (cv < minV) minV = cv; if (cv > maxV) maxV = cv;
+    }
+
+    // 5. Normalize to [margin, 1-margin] with uniform scale
+    const range  = Math.max(maxU - minU, maxV - minV) || 1;
+    const margin = 0.08;
+    const scale  = (1 - 2 * margin) / range;
+
+    for (let i = 0; i < count; i++) {
+      const [cu, cv] = coords[i];
+      uv.setXY(start + i, 0.5 + cu * scale, 0.5 + cv * scale);
+    }
+  }
+
+  uv.needsUpdate = true;
+}
+
+/**
  * Returns a geometry for the given die type split into per-face groups + UV.
  * Cached — safe to call from multiple DieMesh instances.
  */
@@ -140,8 +218,13 @@ export function getGroupedGeometry(id: RegistryId): THREE.BufferGeometry {
   // Assign UV coordinates
   const uvArr = new Float32Array(totalVerts * 2);
 
-  if (id === 'd12') {
-    // Computed UVs need the attribute to exist first (setXY writes to it)
+  if (id === 'd10' || id === 'd10-tens') {
+    // D10: pole-oriented planar projection ensures every number's top points
+    // toward the kite apex, giving consistent orientation across all 10 faces.
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvArr, 2));
+    computeD10PlanarUVs(geo);
+  } else if (id === 'd12') {
+    // D12: generic planar projection — pentagonal faces have no preferred "up".
     geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvArr, 2));
     computePlanarUVs(geo);
   } else {

@@ -19,7 +19,7 @@ const SIZE = 512;
  * Draws the die-colour background + accent circle + number.
  * This is the albedo texture — gives the face its base colour.
  */
-function createAlbedoCanvas(value: number, theme: ThemeDefinition): HTMLCanvasElement {
+function createAlbedoCanvas(value: number, theme: ThemeDefinition, fontScale = 1): HTMLCanvasElement {
   const canvas = document.createElement('canvas');
   canvas.width = SIZE;
   canvas.height = SIZE;
@@ -48,8 +48,9 @@ function createAlbedoCanvas(value: number, theme: ThemeDefinition): HTMLCanvasEl
 
   // --- Number ---
   const label = String(value === 0 ? '0' : value);
-  const fontSize = label.length >= 2 ? 210 : 260;
+  const fontSize = Math.round((label.length >= 2 ? 210 : 260) * fontScale);
   ctx.font = `900 ${fontSize}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
+  if (fontScale < 1) ctx.letterSpacing = '-0.2px';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
@@ -82,7 +83,7 @@ function createAlbedoCanvas(value: number, theme: ThemeDefinition): HTMLCanvasEl
  * roughness, or light direction — albedo textures alone are washed out on
  * highly reflective PBR surfaces.
  */
-function createEmissiveCanvas(value: number, theme: ThemeDefinition): HTMLCanvasElement {
+function createEmissiveCanvas(value: number, theme: ThemeDefinition, fontScale = 1): HTMLCanvasElement {
   const canvas = document.createElement('canvas');
   canvas.width = SIZE;
   canvas.height = SIZE;
@@ -101,8 +102,9 @@ function createEmissiveCanvas(value: number, theme: ThemeDefinition): HTMLCanvas
   ctx.globalAlpha = 1.0;
 
   const label = String(value === 0 ? '0' : value);
-  const fontSize = label.length >= 2 ? 210 : 260;
+  const fontSize = Math.round((label.length >= 2 ? 210 : 260) * fontScale);
   ctx.font = `900 ${fontSize}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
+  if (fontScale < 1) ctx.letterSpacing = '-0.2px';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = '#ffffff';
@@ -120,19 +122,19 @@ function createEmissiveCanvas(value: number, theme: ThemeDefinition): HTMLCanvas
   return canvas;
 }
 
-function getAlbedoTexture(value: number, theme: ThemeDefinition): THREE.CanvasTexture {
-  const key = `${value}__${themeFingerprint(theme)}`;
+function getAlbedoTexture(value: number, theme: ThemeDefinition, fontScale = 1): THREE.CanvasTexture {
+  const key = `${value}__${themeFingerprint(theme)}__${fontScale}`;
   if (_texCache.has(key)) return _texCache.get(key)!;
-  const tex = new THREE.CanvasTexture(createAlbedoCanvas(value, theme));
+  const tex = new THREE.CanvasTexture(createAlbedoCanvas(value, theme, fontScale));
   tex.needsUpdate = true;
   _texCache.set(key, tex);
   return tex;
 }
 
-function getEmissiveTexture(value: number, theme: ThemeDefinition): THREE.CanvasTexture {
-  const key = `${value}__${themeFingerprint(theme)}`;
+function getEmissiveTexture(value: number, theme: ThemeDefinition, fontScale = 1): THREE.CanvasTexture {
+  const key = `${value}__${themeFingerprint(theme)}__${fontScale}`;
   if (_emiCache.has(key)) return _emiCache.get(key)!;
-  const tex = new THREE.CanvasTexture(createEmissiveCanvas(value, theme));
+  const tex = new THREE.CanvasTexture(createEmissiveCanvas(value, theme, fontScale));
   tex.needsUpdate = true;
   _emiCache.set(key, tex);
   return tex;
@@ -271,10 +273,13 @@ export function getDieFaceMaterials(
     return mats;
   }
 
+  // d10-tens (percentile): slightly smaller font for readability on kite faces
+  const fontScale = definition.id === 'd10-tens' ? 0.95 : 1;
+
   if (theme.isGlass) {
     mats = definition.faceValues.map(value =>
       new THREE.MeshPhysicalMaterial({
-        map:             getAlbedoTexture(value, theme),
+        map:             getAlbedoTexture(value, theme, fontScale),
         color:           '#c8e0ff',
         roughness:       theme.roughness,
         metalness:       theme.metalness,
@@ -283,7 +288,7 @@ export function getDieFaceMaterials(
         thickness:       1.5,
         envMapIntensity: 2.0,
         // Emissive: dark-navy numbers still glow faintly so they read on glass
-        emissiveMap:     getEmissiveTexture(value, theme),
+        emissiveMap:     getEmissiveTexture(value, theme, fontScale),
         emissive:        new THREE.Color(0.05, 0.10, 0.25),
         emissiveIntensity: 0.6,
         side:            THREE.FrontSide,
@@ -292,12 +297,12 @@ export function getDieFaceMaterials(
   } else {
     mats = definition.faceValues.map(value =>
       new THREE.MeshStandardMaterial({
-        map:             getAlbedoTexture(value, theme),
+        map:             getAlbedoTexture(value, theme, fontScale),
         roughness:       theme.roughness,
         metalness:       theme.metalness,
         // Emissive layer: numbers glow in their accent colour regardless of
         // surface reflectivity — critical for high-metalness / low-roughness themes.
-        emissiveMap:     getEmissiveTexture(value, theme),
+        emissiveMap:     getEmissiveTexture(value, theme, fontScale),
         emissive:        new THREE.Color(theme.numberColor),
         emissiveIntensity: 0.9,
         side:            THREE.FrontSide,

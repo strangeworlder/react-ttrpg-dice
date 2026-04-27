@@ -11,6 +11,7 @@ import { getGroupedGeometry } from '../geometry/face-groups.js';
 import { getDieFaceMaterials } from '../geometry/face-textures.js';
 import { calculateThrowImpulse } from '../physics/throw-impulse.js';
 import { DieShadow } from './die-shadow.js';
+import type { DiceSoundEngine } from '../sound/dice-sound.js';
 
 // ─── Fake perspective for the orthographic camera ─────────────────────────────
 // Camera sits at y = 20.  A die at y = 0 is 20 units away; at y = 10 it's only
@@ -28,11 +29,12 @@ interface DieMeshProps {
   onSleep: (id: string, rb: RapierRigidBody) => void;
   onRegister: (id: string, rb: RapierRigidBody) => void;
   onUnregister: (id: string) => void;
+  soundEngine?: DiceSoundEngine | null;
 }
 
 export function DieMesh({
   id, definition, spawnPosition, spawnRotation,
-  theme, onSleep, onRegister, onUnregister,
+  theme, onSleep, onRegister, onUnregister, soundEngine,
 }: DieMeshProps) {
   const rbRef = useRef<RapierRigidBody>(null);
   const meshRef = useRef<Mesh>(null);
@@ -112,7 +114,16 @@ export function DieMesh({
         restitution={definition.physics.restitution}
         linearDamping={definition.physics.linearDamping}
         angularDamping={definition.physics.angularDamping}
-        onSleep={() => rbRef.current && onSleep(id, rbRef.current)}
+        onCollisionEnter={() => {
+          if (!soundEngine || !rbRef.current) return;
+          const lv = rbRef.current.linvel();
+          const speed = Math.sqrt(lv.x ** 2 + lv.y ** 2 + lv.z ** 2);
+          const height = Math.max(0, rbRef.current.translation().y);
+          soundEngine.playHit(speed, height);
+        }}
+        onSleep={() => {
+          rbRef.current && onSleep(id, rbRef.current);
+        }}
       >
         {/* material prop accepts Material[] — each group uses the matching index */}
         <mesh ref={meshRef} geometry={geometry} material={materials} />

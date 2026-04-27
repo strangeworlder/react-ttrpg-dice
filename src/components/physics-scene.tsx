@@ -13,6 +13,7 @@ import { calculateSpawnPositions } from '../physics/spawn-grid.js';
 import { readDieResult, COCKED_THRESHOLD } from '../physics/read-die.js';
 import { extractFaceNormals } from '../geometry/face-groups.js';
 import { buildRollResult } from '../math/build-roll-result.js';
+import type { DiceSoundEngine } from '../sound/dice-sound.js';
 
 // ─── Physics tuning ────────────────────────────────────────────────────────────
 
@@ -59,9 +60,10 @@ interface PhysicsSceneProps {
   theme: ThemeDefinition;
   timeout: number;
   onRollComplete: (result: RollResult) => void;
+  soundEngine?: DiceSoundEngine | null;
 }
 
-export function PhysicsScene({ expandedDice, notation, registry, theme, timeout, onRollComplete }: PhysicsSceneProps) {
+export function PhysicsScene({ expandedDice, notation, registry, theme, timeout, onRollComplete, soundEngine }: PhysicsSceneProps) {
   const { size, camera } = useThree();
   const cam = camera as OrthographicCamera;
 
@@ -269,6 +271,7 @@ export function PhysicsScene({ expandedDice, notation, registry, theme, timeout,
             onSleep={handleSleep}
             onRegister={registerRb}
             onUnregister={unregisterRb}
+            soundEngine={soundEngine}
           />
         ))}
       </Physics>
