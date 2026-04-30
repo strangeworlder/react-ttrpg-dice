@@ -16,6 +16,12 @@ export interface UseDiceRollOptions {
   cameraAngle?: CameraAngle;
   /** Enable dice collision sounds. Default: false */
   sound?: boolean | SoundConfig;
+  /**
+   * CSS z-index for the overlay container.
+   * Useful when layering with other fixed-position overlays.
+   * Default: `9999`.
+   */
+  zIndex?: number;
 }
 
 export interface RollOptions {
@@ -130,6 +136,7 @@ export function useDiceRoll(opts?: UseDiceRollOptions): UseDiceRollReturn {
         onRollComplete:      handleComplete,
         sound:               optsRef.current?.sound,
         predeterminedValues: predetermined,
+        zIndex:              optsRef.current?.zIndex,
       } as ReactTTRPGDiceProps)
     : null;
 

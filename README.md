@@ -14,7 +14,7 @@ Dice are rendered with [Three.js](https://threejs.org/) via [React Three Fiber](
 - **Predetermined rolls** — pass known results so the animation plays normally and reveals the right values on settle; designed for server-authoritative multiplayer sync
 - **Camera angle control** — tilt the orthographic camera for subtle or dramatic perspective
 - **Standard notation** — `"2d6"`, `"1d20 + 1d4"`, `"1d100"`, etc.
-- **Full-page overlay** — renders on a fixed `z-index: 9999` layer; dice tumble over your UI then fade out
+- **Full-page overlay** — renders on a fixed `z-index: 9999` layer (configurable via `zIndex` prop); dice tumble over your UI then fade out
 - **Accessible** — live-region announcements, `prefers-reduced-motion` support (instant roll, no animation)
 - **Graceful degradation** — error boundary catches WebGL failures, falls back to instant math-only rolls
 - **Tree-shakeable ESM** — `"sideEffects": false`, ships TypeScript declarations
@@ -298,6 +298,7 @@ React hook that manages roll state and renders the 3D overlay.
 | `timeout` | `number` | `6000` | Hard timeout (ms) before forcing |
 | `cameraAngle` | `CameraAngle` | `{ x: 0, z: 0 }` | Offset camera from top-down |
 | `sound` | `boolean \| SoundConfig` | `false` | Enable procedural collision sounds |
+| `zIndex` | `number` | `9999` | CSS z-index for the overlay container |
 
 #### Returns
 
@@ -328,6 +329,7 @@ Provide **either** `roll` (simple) **or** `groups` (advanced) — not both.
 | `cameraAngle` | `CameraAngle` | — | `{ x: 0, z: 0 }` | Offset camera from top-down |
 | `sound` | `boolean \| SoundConfig` | — | `false` | Enable procedural collision sounds |
 | `predeterminedValues` | `number[]` | — | — | Override physics results with known values (simple path) |
+| `zIndex` | `number` | — | `9999` | CSS z-index for the overlay container |
 
 \* Provide `roll` for simple notation or `groups` for multi-themed rolls — the props are mutually exclusive.
 

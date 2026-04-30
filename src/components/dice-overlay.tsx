@@ -23,9 +23,9 @@ const SR_ONLY: React.CSSProperties = {
   clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0,
 };
 
-function overlayStyle(opacity: number, transition: string): React.CSSProperties {
+function overlayStyle(opacity: number, transition: string, zIndex: number): React.CSSProperties {
   return {
-    position: 'fixed', inset: 0, zIndex: 9999,
+    position: 'fixed', inset: 0, zIndex,
     pointerEvents: 'none', background: 'transparent',
     opacity, transition,
   };
@@ -50,7 +50,7 @@ class CanvasErrorBoundary extends Component<EBProps, EBState> {
 // ─── Main Component ───────────────────────────────────────────────────────────
 export function DiceOverlay({
   roll, config, groups: groupsProp, customRegistry, onRollComplete, onRollStart,
-  timeout = 6000, cameraAngle, sound, predeterminedValues,
+  timeout = 6000, cameraAngle, sound, predeterminedValues, zIndex = 9999,
 }: ReactTTRPGDiceProps) {
   // Camera position: default top-down with optional x/z tilt
   const cameraPosition = useMemo<[number, number, number]>(
@@ -218,7 +218,7 @@ export function DiceOverlay({
 
       <CanvasErrorBoundary onError={fireInstant}>
         <Canvas
-          style={overlayStyle(opacity, transition)}
+          style={overlayStyle(opacity, transition, zIndex)}
           orthographic
           camera={{ position: cameraPosition, zoom: 60, near: 0.1, far: 100, up: [0, 0, -1] }}
           gl={{

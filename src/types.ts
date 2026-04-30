@@ -167,6 +167,12 @@ interface ReactTTRPGDiceBase {
    * values when they settle.
    */
   predeterminedValues?: number[];
+  /**
+   * CSS z-index for the overlay container.
+   * Useful when layering with other fixed-position overlays.
+   * Default: `9999`.
+   */
+  zIndex?: number;
 }
 
 /** Simple path: a single notation string; all dice share the same theme. */

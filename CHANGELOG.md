@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.3.1] — 2026-04-30
+
+### Added
+
+- **Configurable `zIndex`** — new optional `zIndex` prop on `<DiceOverlay>` and
+  `useDiceRoll` options. Defaults to `9999` for backward compatibility. Useful
+  when layering the dice overlay with other fixed-position overlays (e.g. a 3D
+  card matt portal).
+
+---
+
 ## [0.3.0] — 2026-04-27
 
 ### Added
@@ -121,6 +132,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   component, dice notation parser, error boundary fallback, accessibility
   live-region announcements, `prefers-reduced-motion` support.
 
+[0.3.1]: https://github.com/strangeworlder/react-ttrpg-dice/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/strangeworlder/react-ttrpg-dice/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/strangeworlder/react-ttrpg-dice/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/strangeworlder/react-ttrpg-dice/compare/v0.1.0...v0.1.1
