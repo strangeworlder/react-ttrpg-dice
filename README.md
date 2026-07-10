@@ -7,6 +7,7 @@ Dice are rendered with [Three.js](https://threejs.org/) via [React Three Fiber](
 ## ✨ Features
 
 - **Full polyhedral set** — d4, d6, d8, d10, d12, d20, and d100 (percentile)
+- **Fudge/Fate dice** — `dF` rolls a d6 with two `+`, two `−`, and two blank faces (−1 / 0 / +1)
 - **Real physics** — Rapier rigid-body simulation with hull colliders, CCD, and progressive damping
 - **Procedural sound** — opt-in collision audio via Web Audio synthesis — zero audio files, zero dependencies
 - **5 built-in themes** — Obsidian, Ivory, Crimson, Glass (transmission), Metal
@@ -112,11 +113,21 @@ Standard TTRPG notation is supported. Multiple groups are joined with `+`:
 | `2d6` | Two six-sided dice |
 | `2d20 + 1d6` | Two d20s and one d6 |
 | `4d6` | Four six-sided dice |
+| `4dF` | Four Fudge/Fate dice (each −1, 0, or +1) |
 | `1d100` | A d10 (ones) + d10-tens (tens) |
 | `d8` | Count defaults to 1 |
 
-Supported die types: **d4**, **d6**, **d8**, **d10**, **d12**, **d20**, **d100**.
-Maximum 20 dice per group. Case-insensitive (`2D6` = `2d6`).
+Supported die types: **d4**, **d6**, **d8**, **d10**, **d12**, **d20**, **d100**, **dF** (Fudge/Fate).
+Maximum 20 dice per group. Case-insensitive (`2D6` = `2d6`, `4DF` = `4dF`).
+
+### Fudge / Fate dice (`dF`)
+
+`dF` spawns a six-sided die whose faces show two `+` (value `+1`), two `−` (value
+`−1`), and two blank (value `0`). Roll `4dF` for the standard Fate check; the
+`total` is the sum, ranging from `−4` to `+4`. Each `SingleDieResult` reports
+`type: 'dF'`, `value` in `{ -1, 0, 1 }`, with `isMax` set for `+1` and `isMin`
+for `−1`. Predetermined values use the same signed numbers, e.g.
+`roll('4dF', { predeterminedValues: [1, 1, -1, 0] })`.
 
 ## 🎨 Themes
 
@@ -343,10 +354,10 @@ interface RollResult {
 }
 
 interface SingleDieResult {
-  type: DieType;   // "d4" | "d6" | "d8" | "d10" | "d12" | "d20" | "d100"
-  value: number;   // Face value
-  isMax: boolean;  // Rolled the highest possible value
-  isMin: boolean;  // Rolled the lowest possible value
+  type: DieType;   // "d4" | "d6" | "d8" | "d10" | "d12" | "d20" | "d100" | "dF"
+  value: number;   // Face value (Fudge dice: -1 | 0 | 1)
+  isMax: boolean;  // Rolled the highest possible value (Fudge: +1)
+  isMin: boolean;  // Rolled the lowest possible value (Fudge: −1)
   group?: string;  // Group label (only present in grouped rolls)
 }
 ```

@@ -30,6 +30,21 @@ describe('parseDiceNotation', () => {
     }
   });
 
+  it('parses Fudge dice notation', () => {
+    expect(parseDiceNotation('dF').groups[0]).toEqual({ count: 1, type: 'dF' });
+    expect(parseDiceNotation('4dF').groups[0]).toEqual({ count: 4, type: 'dF' });
+  });
+
+  it('parses Fudge dice case-insensitively', () => {
+    expect(parseDiceNotation('4DF').groups[0]).toEqual({ count: 4, type: 'dF' });
+    expect(parseDiceNotation('4df').groups[0]).toEqual({ count: 4, type: 'dF' });
+  });
+
+  it('parses Fudge dice mixed with numeric dice', () => {
+    const r = parseDiceNotation('4dF + 1d6');
+    expect(r.groups).toEqual([{ count: 4, type: 'dF' }, { count: 1, type: 'd6' }]);
+  });
+
   it('throws for invalid die type', () => {
     expect(() => parseDiceNotation('1d7')).toThrow(DiceNotationError);
   });
@@ -79,5 +94,12 @@ describe('expandNotation', () => {
     const expanded = expandNotation(parseDiceNotation('2d100'));
     const pairIds = new Set(expanded.map(d => d.pairId));
     expect(pairIds.size).toBe(2);
+  });
+
+  it('expands 4dF into four Fudge dice', () => {
+    const expanded = expandNotation(parseDiceNotation('4dF'));
+    expect(expanded).toHaveLength(4);
+    expect(expanded.every(d => d.registryId === 'dF')).toBe(true);
+    expect(expanded.every(d => d.publicType === 'dF')).toBe(true);
   });
 });

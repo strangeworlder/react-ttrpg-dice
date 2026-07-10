@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useDiceRoll } from 'react-ttrpg-dice';
 import type { DiceThemeConfig, DiceGroup, CameraAngle } from 'react-ttrpg-dice';
 
-const PRESETS = ['2d6', '1d20', '2d20 + 1d6', '4d6', '1d100', '1d12 + 1d8 + 1d4'];
+const PRESETS = ['2d6', '1d20', '2d20 + 1d6', '4d6', '1d100', '1d12 + 1d8 + 1d4', '4dF'];
 const THEMES: (DiceThemeConfig['theme'] | 'custom')[] = ['obsidian', 'ivory', 'crimson', 'glass', 'metal', 'custom'];
 
 /** Generate a random vibrant custom theme each time it's called */
@@ -49,6 +49,7 @@ const PREDETERMINED_PRESETS: { name: string; notation: string; values: number[];
   { name: '🔺 d4 → 3',           notation: '1d4',  values: [3] },
   { name: '🎯 d20 → 20 (Nat!)', notation: '1d20', values: [20] },
   { name: '🗡️ 2d6 → 3, 5',      notation: '2d6',  values: [3, 5] },
+  { name: '➕ 4dF → +,+,−,0',    notation: '4dF', values: [1, 1, -1, 0] },
   { name: '💯 d100 → 73',        notation: '1d100', values: [73] },
   {
     name: '⚔️ Attack(17) + Dmg(4,6)',

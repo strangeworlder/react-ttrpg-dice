@@ -78,6 +78,29 @@ describe('instantRoll', () => {
 
     expect(result.rolls[0].isMin).toBe(true);
   });
+
+  it('Fudge dice yield values of -1, 0, or +1', () => {
+    const parsed = parseDiceNotation('4dF');
+    for (let i = 0; i < 50; i++) {
+      const result = instantRoll(parsed, registry);
+      for (const r of result.rolls) {
+        expect([-1, 0, 1]).toContain(r.value);
+        expect(r.type).toBe('dF');
+      }
+    }
+  });
+
+  it('Fudge dice set isMax for +1 and isMin for -1', () => {
+    // faceValues = [1, -1, 1, -1, 0, 0]; index 0 → +1, index 1 → -1, index 4 → 0
+    mockCrypto([0]);
+    expect(instantRoll(parseDiceNotation('1dF'), registry).rolls[0]).toMatchObject({ value: 1, isMax: true, isMin: false });
+
+    mockCrypto([1]);
+    expect(instantRoll(parseDiceNotation('1dF'), registry).rolls[0]).toMatchObject({ value: -1, isMax: false, isMin: true });
+
+    mockCrypto([4]);
+    expect(instantRoll(parseDiceNotation('1dF'), registry).rolls[0]).toMatchObject({ value: 0, isMax: false, isMin: false });
+  });
 });
 
 describe('instantGroupedRoll', () => {

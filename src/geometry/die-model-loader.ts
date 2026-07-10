@@ -16,6 +16,7 @@ function getProceduralGeometry(id: RegistryId): THREE.BufferGeometry {
   switch (id) {
     case 'd4':       geo = createD4Geometry();  break;
     case 'd6':       geo = createD6Geometry();  break;
+    case 'dF':       geo = createD6Geometry();  break;
     case 'd8':       geo = createD8Geometry();  break;
     case 'd10':
     case 'd10-tens': geo = createD10Geometry(); break;

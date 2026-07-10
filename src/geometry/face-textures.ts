@@ -210,6 +210,119 @@ function getEmissiveTexture(value: number, theme: ThemeDefinition, fontScale = 1
   return t;
 }
 
+// ─── Fudge / Fate faces (+ / − / blank) ──────────────────────────────────────
+// A Fudge die face shows a plus, a minus, or nothing (blank). We map the
+// die's face value (+1 / −1 / 0) to the drawn symbol.
+
+/** Returns the symbol for a Fudge face value: '+', '−', or '' (blank). */
+function fudgeSymbol(value: number): string {
+  if (value > 0) return '+';
+  if (value < 0) return '\u2212'; // minus sign U+2212
+  return '';
+}
+
+const FUDGE_FONT_SIZE = 320;
+
+/**
+ * Draws a Fudge symbol ('+' or '−') precisely centered on the canvas.
+ * Uses the glyph's actual bounding box so the symbol's visual center — not the
+ * font's baseline/em-box — lands on the face center. (The shared
+ * `drawCenteredText` applies a +10px nudge tuned for digits, which visibly
+ * offsets these symbols.)
+ */
+function drawCenteredSymbol(
+  ctx: CanvasRenderingContext2D,
+  symbol: string,
+  fontSize: number,
+  fill: string,
+  stroke?: { style: string; width: number },
+): void {
+  ctx.font = `900 ${fontSize}px ${SANS_FONT}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+
+  const m = ctx.measureText(symbol);
+  const ascent  = m.actualBoundingBoxAscent  ?? fontSize * 0.35;
+  const descent = m.actualBoundingBoxDescent ?? 0;
+  const y = SIZE / 2 + (ascent - descent) / 2;
+
+  if (stroke) {
+    ctx.strokeStyle = stroke.style;
+    ctx.lineWidth = stroke.width;
+    ctx.lineJoin = 'round';
+    ctx.strokeText(symbol, SIZE / 2, y);
+  }
+  ctx.fillStyle = fill;
+  ctx.fillText(symbol, SIZE / 2, y);
+}
+
+function createFudgeAlbedoCanvas(value: number, theme: ThemeDefinition): HTMLCanvasElement {
+  const canvas = document.createElement('canvas');
+  canvas.width = SIZE;
+  canvas.height = SIZE;
+  const ctx = canvas.getContext('2d')!;
+
+  fillBackground(ctx, theme);
+
+  const symbol = fudgeSymbol(value);
+  if (symbol) {
+    drawCirclePad(ctx, theme);
+    drawAccentCircle(ctx, theme);
+    drawCenteredSymbol(
+      ctx,
+      symbol,
+      FUDGE_FONT_SIZE,
+      theme.isGlass ? '#0d1f3c' : theme.numberColor,
+      { style: theme.isGlass ? 'rgba(0,10,40,0.6)' : 'rgba(0,0,0,0.55)', width: 14 },
+    );
+  }
+  // value === 0 → entirely blank face (just the die body colour)
+
+  return canvas;
+}
+
+function createFudgeEmissiveCanvas(value: number): HTMLCanvasElement {
+  const canvas = document.createElement('canvas');
+  canvas.width = SIZE;
+  canvas.height = SIZE;
+  const ctx = canvas.getContext('2d')!;
+
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(0, 0, SIZE, SIZE);
+
+  const symbol = fudgeSymbol(value);
+  if (symbol) {
+    // Subtle circle glow
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 6;
+    ctx.globalAlpha = 0.35;
+    ctx.beginPath();
+    ctx.arc(SIZE / 2, SIZE / 2, SIZE * 0.36, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1.0;
+
+    drawCenteredSymbol(ctx, symbol, FUDGE_FONT_SIZE, '#ffffff');
+  }
+
+  return canvas;
+}
+
+function getFudgeAlbedoTexture(value: number, theme: ThemeDefinition): THREE.CanvasTexture {
+  const key = `fudge_${value}__${themeFingerprint(theme)}`;
+  if (_texCache.has(key)) return _texCache.get(key)!;
+  const t = tex(createFudgeAlbedoCanvas(value, theme));
+  _texCache.set(key, t);
+  return t;
+}
+
+function getFudgeEmissiveTexture(value: number, theme: ThemeDefinition): THREE.CanvasTexture {
+  const key = `fudge_${value}__${themeFingerprint(theme)}`;
+  if (_emiCache.has(key)) return _emiCache.get(key)!;
+  const t = tex(createFudgeEmissiveCanvas(value));
+  _emiCache.set(key, t);
+  return t;
+}
+
 // ─── D4 corner-number topology ──────────────────────────────────────────────
 // Three.js TetrahedronGeometry(r, 0) indices: [2,1,0, 0,3,2, 1,3,0, 2,3,1]
 // Face i has these original vertex indices:
@@ -313,6 +426,21 @@ export function getDieFaceMaterials(
         theme,
         map:               tex(createD4AlbedoCanvas(fi, definition.faceValues, theme)),
         emissiveMap:       tex(createD4EmissiveCanvas(fi, definition.faceValues)),
+        emissive:          emissiveFor(theme),
+        emissiveIntensity: emissiveIntensityFor(theme),
+      }),
+    );
+    _matCache.set(key, mats);
+    return mats;
+  }
+
+  // ─── Fudge/Fate die: +, −, or blank faces ────────────────────────────────
+  if (definition.id === 'dF') {
+    mats = definition.faceValues.map(value =>
+      createFaceMaterial({
+        theme,
+        map:               getFudgeAlbedoTexture(value, theme),
+        emissiveMap:       getFudgeEmissiveTexture(value, theme),
         emissive:          emissiveFor(theme),
         emissiveIntensity: emissiveIntensityFor(theme),
       }),
@@ -596,6 +724,24 @@ export function getRevealFaceMaterials(
         emissiveIntensity: emissiveIntensityFor(theme),
       }),
     );
+  }
+
+  // ─── Fudge/Fate die: symbol on upFaceIndex, scrambled glyphs elsewhere ────
+  if (definition.id === 'dF') {
+    return definition.faceValues.map((_, i) => {
+      const isResult = i === upFaceIndex;
+      return createFaceMaterial({
+        theme,
+        map:               isResult
+          ? getFudgeAlbedoTexture(value, theme)
+          : tex(createScrambledAlbedoCanvas(theme)),
+        emissiveMap:       isResult
+          ? getFudgeEmissiveTexture(value, theme)
+          : tex(createScrambledEmissiveCanvas()),
+        emissive:          isResult ? emissiveFor(theme) : new THREE.Color(0x222222),
+        emissiveIntensity: isResult ? emissiveIntensityFor(theme) : 0.5,
+      });
+    });
   }
 
   // ─── Standard dice: value on upFaceIndex, scrambled glyphs elsewhere ──────
