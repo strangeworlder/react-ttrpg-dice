@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-07-12
+
 ### Added
 
 - **Fudge / Fate dice** — new `dF` notation (e.g. `4dF`, case-insensitive) rolls
@@ -143,6 +145,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   component, dice notation parser, error boundary fallback, accessibility
   live-region announcements, `prefers-reduced-motion` support.
 
+[0.4.0]: https://github.com/strangeworlder/react-ttrpg-dice/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/strangeworlder/react-ttrpg-dice/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/strangeworlder/react-ttrpg-dice/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/strangeworlder/react-ttrpg-dice/compare/v0.1.1...v0.2.0
