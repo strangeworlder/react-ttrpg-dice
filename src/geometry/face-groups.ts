@@ -10,6 +10,7 @@ import { getDieGeometry } from './die-model-loader.js';
 const TRIS_PER_FACE: Record<string, number> = {
   'd4':       1,  // TetrahedronGeometry: 4 triangular faces
   'd6':      -1,  // BoxGeometry: 6 groups already built-in
+  'dF':      -1,  // Fudge die: BoxGeometry, 6 groups already built-in
   'd8':       1,  // OctahedronGeometry: 8 triangular faces
   'd10':      2,  // Custom D10: 10 kite faces (2 triangles per face)
   'd10-tens': 2,

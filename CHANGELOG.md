@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **Fudge / Fate dice** — new `dF` notation (e.g. `4dF`, case-insensitive) rolls
+  a six-sided die with two `+` (+1), two `−` (−1), and two blank (0) faces.
+  Results report `type: 'dF'` with `value` in `{ -1, 0, 1 }`; `isMax` marks a
+  `+1` and `isMin` a `−1`. Works with grouped, instant, and predetermined rolls.
+
+---
+
 ## [0.3.1] — 2026-04-30
 
 ### Added

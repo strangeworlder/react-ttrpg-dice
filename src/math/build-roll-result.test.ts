@@ -73,6 +73,21 @@ describe('buildRollResult', () => {
     expect(result.rolls[0].isMin).toBe(true);
     expect(result.rolls[0].isMax).toBe(false);
   });
+
+  it('Fudge dice flag isMax/isMin from +1/-1 (not sides)', () => {
+    const expanded = [
+      die('dF-1', 'dF', 'dF'),
+      die('dF-2', 'dF', 'dF'),
+      die('dF-3', 'dF', 'dF'),
+    ];
+    const resolved = new Map([['dF-1', 1], ['dF-2', -1], ['dF-3', 0]]);
+    const result = buildRollResult('3dF', expanded, resolved, registry);
+
+    expect(result.total).toBe(0);
+    expect(result.rolls[0]).toMatchObject({ value: 1, type: 'dF', isMax: true, isMin: false });
+    expect(result.rolls[1]).toMatchObject({ value: -1, isMax: false, isMin: true });
+    expect(result.rolls[2]).toMatchObject({ value: 0, isMax: false, isMin: false });
+  });
 });
 
 describe('buildPredeterminedRollResult', () => {
@@ -103,5 +118,14 @@ describe('buildPredeterminedRollResult', () => {
     const result = buildPredeterminedRollResult('1d6', expanded, [], registry);
 
     expect(result.rolls[0].value).toBe(1);
+  });
+
+  it('Fudge dice flag isMax/isMin from +1/-1', () => {
+    const expanded = [die('dF-1', 'dF', 'dF'), die('dF-2', 'dF', 'dF')];
+    const result = buildPredeterminedRollResult('2dF', expanded, [1, -1], registry);
+
+    expect(result.rolls[0]).toMatchObject({ value: 1, isMax: true, isMin: false });
+    expect(result.rolls[1]).toMatchObject({ value: -1, isMax: false, isMin: true });
+    expect(result.total).toBe(0);
   });
 });

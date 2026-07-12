@@ -31,7 +31,9 @@ function rollParsedGroup(
         const raw = def.faceValues[fi] ?? fi + 1;
         // D10 standalone: face "0" = 10
         const value = group.type === 'd10' && raw === 0 ? 10 : raw;
-        rolls.push({ type: group.type, value, isMax: value === def.sides, isMin: value === 1, group: groupLabel });
+        const isMax = group.type === 'dF' ? value === 1  : value === def.sides;
+        const isMin = group.type === 'dF' ? value === -1 : value === 1;
+        rolls.push({ type: group.type, value, isMax, isMin, group: groupLabel });
       }
     }
   }

@@ -1,10 +1,11 @@
 import type { ThemeDefinition } from './themes/theme-definitions.js';
 
 // ─── Public die type strings (user-facing) ───────────────────────────────────
-export type DieType = 'd4' | 'd6' | 'd8' | 'd10' | 'd12' | 'd20' | 'd100';
+// `dF` is a Fudge/Fate die: a d6 with two "+", two "−", and two blank faces.
+export type DieType = 'd4' | 'd6' | 'd8' | 'd10' | 'd12' | 'd20' | 'd100' | 'dF';
 
 /** Internal registry IDs — includes the two d10 variants used for d100 */
-export type RegistryId = 'd4' | 'd6' | 'd8' | 'd10' | 'd10-tens' | 'd12' | 'd20';
+export type RegistryId = 'd4' | 'd6' | 'd8' | 'd10' | 'd10-tens' | 'd12' | 'd20' | 'dF';
 
 export interface ParsedDieGroup {
   count: number;

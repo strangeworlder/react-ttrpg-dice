@@ -3,7 +3,8 @@ import type { ThemeDefinition } from './themes/theme-definitions.js';
 import { applyTheme } from './themes/apply-theme.js';
 
 const VALID_SIDES: ReadonlySet<number> = new Set([4, 6, 8, 10, 12, 20, 100]);
-const DIE_PATTERN = /(\d*)d(\d+)/gi;
+// Matches a die group: optional count, `d`, then either a side count or `F` (Fudge/Fate die).
+const DIE_PATTERN = /(\d*)d(\d+|f)/gi;
 const MAX_COUNT = 20;
 
 export class DiceNotationError extends Error {
@@ -31,15 +32,22 @@ export function parseDiceNotation(notation: string): ParsedNotation {
 
   while ((match = DIE_PATTERN.exec(trimmed)) !== null) {
     const count = match[1] === '' ? 1 : parseInt(match[1], 10);
-    const sides = parseInt(match[2], 10);
 
     if (isNaN(count) || count < 1 || count > MAX_COUNT) {
       throw new DiceNotationError(
         `Die count must be 1–${MAX_COUNT}, got "${match[1]}".`, notation);
     }
+
+    // Fudge/Fate die: "dF" — a d6 with two "+", two "−", and two blank faces.
+    if (match[2].toLowerCase() === 'f') {
+      groups.push({ count, type: 'dF' });
+      continue;
+    }
+
+    const sides = parseInt(match[2], 10);
     if (!VALID_SIDES.has(sides)) {
       const valid = [...VALID_SIDES].map(s => `d${s}`).join(', ');
-      throw new DiceNotationError(`Invalid die: d${sides}. Valid: ${valid}`, notation);
+      throw new DiceNotationError(`Invalid die: d${sides}. Valid: ${valid}, dF`, notation);
     }
     groups.push({ count, type: `d${sides}` as DieType });
   }

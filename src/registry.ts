@@ -42,6 +42,16 @@ const D6: DieDefinition = {
   faceValues:  [3, 4, 6, 1, 2, 5], // opposite faces sum to 7 ⚠️ calibrate
 };
 
+// Fudge/Fate die: a d6 shape whose faces carry +1 (×2), −1 (×2), and 0 (×2).
+const DF: DieDefinition = {
+  id: 'dF', sides: 6, modelPath: '',
+  physics: { mass: 1.0, friction: 0.6, restitution: 0.3, linearDamping: 0.3, angularDamping: 0.5 },
+  readStrategy: 'face-up',
+  // Same BoxGeometry face order as d6: +X, -X, +Y, -Y, +Z, -Z
+  faceNormals: [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]],
+  faceValues:  [1, -1, 1, -1, 0, 0], // two plus, two minus, two blank
+};
+
 const D8: DieDefinition = {
   id: 'd8', sides: 8, modelPath: '',
   physics: { mass: 1.0, friction: 0.5, restitution: 0.4, linearDamping: 0.2, angularDamping: 0.4 },
@@ -109,7 +119,7 @@ const D20: DieDefinition = {
   faceValues: [1,2,3,4,17,18,19,20, 5,6,15,16, 7,8,13,14, 9,12,11,10],
 };
 
-const DEFAULTS: DieDefinition[] = [D4, D6, D8, D10, D10_TENS, D12, D20];
+const DEFAULTS: DieDefinition[] = [D4, D6, D8, D10, D10_TENS, D12, D20, DF];
 
 // ─── Registry ────────────────────────────────────────────────────────────────
 

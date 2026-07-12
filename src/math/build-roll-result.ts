@@ -32,7 +32,9 @@ export function buildRollResult(
     } else {
       const def    = registry.get(die.registryId);
       const actual = die.registryId === 'd10' && value === 0 ? 10 : value;
-      rolls.push({ type: die.publicType, value: actual, isMax: actual === def.sides, isMin: actual === 1, group: die.group });
+      const isMax  = die.registryId === 'dF' ? actual === 1  : actual === def.sides;
+      const isMin  = die.registryId === 'dF' ? actual === -1 : actual === 1;
+      rolls.push({ type: die.publicType, value: actual, isMax, isMin, group: die.group });
     }
   }
 
@@ -76,11 +78,13 @@ export function buildPredeterminedRollResult(
     } else {
       const def   = registry.get(die.registryId);
       const value = values[valueIdx++] ?? 1;
+      const isMax = die.registryId === 'dF' ? value === 1  : value === def.sides;
+      const isMin = die.registryId === 'dF' ? value === -1 : value === 1;
       rolls.push({
         type: die.publicType,
         value,
-        isMax: value === def.sides,
-        isMin: value === 1,
+        isMax,
+        isMin,
         group: die.group,
       });
     }
